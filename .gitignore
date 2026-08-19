@@ -1,0 +1,109 @@
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test & coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# =============================================================================
+# Environments
+# =============================================================================
+.venv/
+venv/
+ENV/
+env/
+.env
+.env.*
+!.env.example
+
+# =============================================================================
+# Streamlit
+# =============================================================================
+# Secrets must never be committed -- API keys, tokens, connection strings.
+.streamlit/secrets.toml
+
+# =============================================================================
+# Vector store
+# =============================================================================
+# The index is in-memory only and should never touch disk. If any of these
+# appear it means persistence was enabled -- ignored defensively either way.
+chroma/
+.chroma/
+chroma_db/
+*.chroma
+vectorstore/
+
+# =============================================================================
+# Superseded documentation
+# =============================================================================
+# Kept locally as historical records of earlier versions, but excluded from the
+# repository: they describe behaviour replaced in v4.0 (whole documents pasted
+# into the prompt, pre-`rag_core/` file layout) and would mislead anyone reading
+# them as current. Current equivalents:
+#   CHANGELOG_v2.1.md        -> CHANGELOG.md
+#   IMPLEMENTATION_SUMMARY.md-> ARCHITECTURE.md, FILE_GUIDE.md
+#   V3_RAG_FIRST_SUMMARY.md  -> RAG_FIRST_GUIDE.md
+#   DOWNLOAD_INSTRUCTIONS.md -> FILE_GUIDE.md, QUICKSTART.md
+CHANGELOG_v2.1.md
+IMPLEMENTATION_SUMMARY.md
+V3_RAG_FIRST_SUMMARY.md
+DOWNLOAD_INSTRUCTIONS.md
+
+# =============================================================================
+# Local documents and scratch work
+# =============================================================================
+# Never commit documents uploaded for testing -- they are often confidential.
+uploads/
+documents/
+test_docs/
+sample_docs/
+*.local.*
+scratch/
+tmp/
+
+# Exported conversations
+conversation_transcript*.html
+qa_*.html
+
+# =============================================================================
+# Editors & IDEs
+# =============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.ipynb_checkpoints/
+
+# =============================================================================
+# OS
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# =============================================================================
+# Logs
+# =============================================================================
+*.log
+logs/

@@ -1,11 +1,36 @@
-# 🎯 RAG-First Application - User Guide (v3.0)
+# 🎯 RAG-First Application - User Guide (v4.0)
 
 ## Complete Architecture Change
 
-This application is now a **RAG-FIRST** tool. This means:
+This application is a **RAG-FIRST** tool. This means:
 - 📄 **Primary purpose**: Analyze YOUR uploaded documents
 - 🔒 **Default behavior**: Answers come ONLY from your documents
 - ✅ **Opt-in for LLM**: Checkbox to enable general knowledge when needed
+
+> **What changed in v4.0.** The three modes below work as they always have, but
+> what happens underneath is different. Earlier versions pasted entire documents
+> into the prompt, which meant anything past the context limit was silently
+> discarded -- on a long document, most of it. There is now a real retrieval
+> layer: documents are chunked, indexed, and *searched* per question, and only
+> the relevant passages are sent. Answers carry `[S1]`-style citations traced to
+> real pages, and the app verifies those citations rather than trusting them.
+>
+> The practical consequence: **document length no longer limits answer quality**,
+> and "documents only" is now a promise the app can actually keep.
+
+---
+
+## Prerequisite: an embedding model
+
+Document search needs an embedding model alongside your chat model:
+
+```bash
+ollama pull nomic-embed-text
+```
+
+Without one, documents can be uploaded and read but not searched. The app says
+so explicitly rather than falling back to general knowledge while claiming to
+read your files.
 
 ---
 
@@ -16,24 +41,33 @@ This application is now a **RAG-FIRST** tool. This means:
 **When**: Documents uploaded + "Allow LLM General Knowledge" UNCHECKED
 
 **Behavior**:
-- ✅ AI answers ONLY from your uploaded documents
-- ✅ If answer not in document: "This information is not found in the provided document"
-- ✅ Cites specific sections and uses quotes
-- ✅ Zero hallucination - everything traceable to source
+- ✅ AI answers ONLY from passages retrieved from your documents
+- ✅ If the answer is not in them: "This information is not found in the provided documents"
+- ✅ Cites each claim as `[S1]`, `[S2]`, traceable to a page or slide
+- ✅ Fabricated citations are detected and flagged above the answer
+- ✅ With nothing indexed, the app declines outright rather than answering from
+  general knowledge -- it does not even call the model
 
 **Visual Indicator**:
 ```
 ✅ STRICT RAG MODE: AI will answer ONLY from your uploaded documents
-🎯 Perspective: Scientist | Audience: Scientist | Documents: 2 | Mode: RAG Only
+🎯 Perspective: Scientist | Audience: Scientist | Documents: 2 | Indexed chunks: 118 | Mode: RAG Only
 ```
 
 **Sidebar Status**:
 ```
-📄 Documents Loaded - RAG Mode Active
+📄 Documents Indexed - RAG Mode Active
 Answer source: Uploaded documents
 ☐ Allow LLM General Knowledge (UNCHECKED)
 ✅ AI will answer ONLY from documents
+
+🧠 Vector store: 118 chunks from 2 document(s)
+   [🗑️ Clear Vector Store]
 ```
+
+**Checking the answer**: expand **"📚 Sources"** to read the exact passages
+behind each citation, and **"🔬 Retrieval Diagnostics"** to see what was
+searched and how much of the context budget was used.
 
 **Use for**:
 - Analyzing research papers

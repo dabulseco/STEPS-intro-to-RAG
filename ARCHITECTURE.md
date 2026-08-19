@@ -58,10 +58,65 @@
 │    OLLAMA      │    │    LANGCHAIN       │    │   STREAMLIT      │
 │                │    │                    │    │                  │
 │ - Local LLM    │    │ - ChatOllama       │    │ - UI Framework   │
-│ - Model Serve  │    │ - Prompt Templates │    │ - Session State  │
+│ - Embeddings   │    │ - Message types    │    │ - Session State  │
 │ - API Endpoint │    │ - Output Parser    │    │ - Components     │
 └────────────────┘    └────────────────────┘    └──────────────────┘
+        │
+┌───────▼──────────┐  ┌────────────────────┐
+│    CHROMADB      │  │     RANK-BM25      │
+│ (in-memory only) │  │  (keyword index)   │
+└──────────────────┘  └────────────────────┘
 ```
+
+## Retrieval Engine (`rag_core/`)
+
+Streamlit owns the UI; `rag_core` owns retrieval and imports no Streamlit at
+all. The boundary is deliberate — the engine is portable to another application
+unchanged.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    app.py  (Streamlit — all UI)                          │
+│   widgets · session state · progress bars · sources & diagnostics panels │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │  calls rag_core.pipeline.answer()
+                                │  passes a plain `generate(...)` callback
+┌───────────────────────────────▼─────────────────────────────────────────┐
+│                   rag_core/  (no Streamlit, no persistence assumption)   │
+│                                                                          │
+│   INGEST                              QUERY                              │
+│   ──────                              ─────                              │
+│   document_processor.py               query_transformer.py               │
+│     → structured blocks                 condense / rewrite / multi-query │
+│           │                             HyDE / filter inference          │
+│           ▼                                       │                      │
+│   chunker.py                                      ▼                      │
+│     child chunks (~400 tok)           store.py                           │
+│     + parent windows                    ┌──────────────┬──────────────┐  │
+│     + page/section metadata             │ Chroma       │ BM25         │  │
+│           │                             │ (semantic)   │ (keyword)    │  │
+│           ▼                             └──────┬───────┴──────┬───────┘  │
+│   enrichment.py  (opt-in)                      └───── RRF ────┘          │
+│     contextual headers                            │                      │
+│           │                                       ▼                      │
+│           ▼                             reranker.py  (optional)          │
+│   embeddings.py                           LLM or cross-encoder           │
+│     batched Ollama /api/embed                     │                      │
+│           │                                       ▼                      │
+│           └────────► store.add_chunks() context_assembler.py             │
+│                                           token budget · [S1] markers    │
+│                                                   │                      │
+│                                                   ▼                      │
+│                                         citations.py                     │
+│                                           verify every [S#] marker       │
+│                                                                          │
+│   pipeline.py orchestrates all of the above — the single answer path      │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Making it persistent** is one line in `rag_core/store.py`:
+`chromadb.EphemeralClient()` → `chromadb.PersistentClient(path=...)`. Nothing
+above that line knows or cares how long the store lives.
 
 ## Data Flow Diagram
 
@@ -93,18 +148,53 @@ USER INPUT
             [User Query] ◄───────────────────────┘
                   │
                   ▼
-        ┌──────────────────┐
-        │  Build Context   │
-        │  - Perspective   │
-        │  - Audience      │
-        │  - Chat History  │
-        └────────┬─────────┘
+        ┌──────────────────────────┐
+        │  run_query()  (app.py)   │
+        │  single path for BOTH    │
+        │  chat and template input │
+        └────────┬─────────────────┘
                  │
                  ▼
-        ┌──────────────────┐
-        │ Generate Prompt  │
-        │ with PromptBuild │
-        └────────┬─────────┘
+        ┌──────────────────────────┐
+        │ resolve_mode()           │
+        │ index empty? → LLM mode  │
+        │ strict / hybrid / llm    │
+        └────────┬─────────────────┘
+                 │
+       ┌─────────┴──────────┐
+       │                    │
+  [no index]           [indexed]
+       │                    │
+       │                    ▼
+       │          ┌──────────────────────┐
+       │          │ Transform query      │
+       │          │ (condense/rewrite/…) │
+       │          └────────┬─────────────┘
+       │                   ▼
+       │          ┌──────────────────────┐
+       │          │ Hybrid search + RRF  │
+       │          │ semantic + keyword   │
+       │          └────────┬─────────────┘
+       │                   ▼
+       │          ┌──────────────────────┐
+       │          │ Re-rank (optional)   │
+       │          └────────┬─────────────┘
+       │                   ▼
+       │          ┌──────────────────────┐
+       │          │ Assemble context     │
+       │          │ to a TOKEN BUDGET    │
+       │          │ → [S1] [S2] …        │
+       │          └────────┬─────────────┘
+       │                   │
+       └─────────┬─────────┘
+                 ▼
+        ┌──────────────────────────┐
+        │  Build system prompt     │
+        │  - Perspective           │
+        │  - Audience              │
+        │  - GROUNDING RULES       │
+        │    (strict/hybrid/llm)   │
+        └────────┬─────────────────┘
                  │
                  ▼
         ┌──────────────────┐
@@ -113,9 +203,10 @@ USER INPUT
         └────────┬─────────┘
                  │
                  ▼
-        ┌──────────────────┐
-        │  Receive Response│
-        └────────┬─────────┘
+        ┌──────────────────────────┐
+        │  Receive Response        │
+        │  + verify [S#] citations │
+        └────────┬─────────────────┘
                  │
                  ▼
         ┌──────────────────┐

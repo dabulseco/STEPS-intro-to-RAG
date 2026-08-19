@@ -2,18 +2,57 @@
 
 ## Overview
 
-The Local LLM Scientific Assistant now supports **uploading and processing PDF and DOCX documents**. Upload research papers, reports, manuscripts, or any document, and ask questions about them or analyze their content.
+The Local LLM Scientific Assistant supports **uploading, indexing and searching
+PDF, DOCX and PPTX documents**. Upload research papers, reports, manuscripts or
+slide decks, and ask questions answered from their contents with citations.
 
 ---
 
 ## Supported File Types
 
-- ✅ **PDF** (.pdf) - Extracts text from all pages
-- ✅ **DOCX** (.docx) - Extracts text from paragraphs and tables
+- ✅ **PDF** (.pdf) - Extracts text page by page, detecting section headings
+- ✅ **DOCX** (.docx) - Extracts paragraphs and tables, using real heading styles
 - ✅ **DOC** (.doc) - Legacy Word format support
+- ✅ **PPTX** (.pptx) - Extracts each slide, using slide titles as sections
 
-**Maximum file size**: 10 MB per file  
-**Multiple files**: Upload multiple documents at once for comparison or combined analysis
+**Maximum file size**: 200 MB per file
+**Multiple files**: Upload several documents at once for comparison or combined analysis
+
+> **Scanned PDFs will not work.** If a PDF contains images of text rather than
+> text, there is nothing to extract. The app detects this and tells you at
+> upload time; run the file through OCR first.
+
+---
+
+## How Retrieval Works
+
+Understanding this makes the rest of the guide make sense.
+
+```
+Your document
+   ↓  extracted into blocks that keep their page/slide and section
+   ↓  split into chunks (~400 words) that never straddle a page
+   ↓  each chunk embedded into a vector AND indexed for keyword search
+   ↓
+Your question
+   ↓  searched two ways at once:
+   ↓     • semantically -- finds passages that mean the same thing
+   ↓     • by keyword   -- finds exact terms, part numbers, gene names
+   ↓  the two rankings are merged
+   ↓  the best passages are packed into the model's context window
+   ↓
+Answer, citing [S1] [S2] traced back to real pages
+```
+
+**Why both search methods?** Each fails where the other succeeds. Ask "how warm
+were the cells kept" and semantic search finds "cultured at 37 degrees" despite
+sharing no words with your question. Ask for catalog number "ZZQX7-4419" and
+keyword search finds it exactly, where semantic search would return
+vaguely-similar passages. Running both is what makes the app reliable across
+question types.
+
+**Nothing is written to disk.** The index lives in memory for the session only.
+Close the app, or press **"🗑️ Clear Vector Store"**, and it is gone.
 
 ---
 
@@ -22,10 +61,10 @@ The Local LLM Scientific Assistant now supports **uploading and processing PDF a
 ### Basic Workflow
 
 1. **Navigate to Chat page**
-2. **Click "📄 Upload Documents (PDF, DOCX)"** expander
+2. **Click "📄 Upload Documents (PDF, DOCX, PPTX)"** expander
 3. **Choose your files** using the file uploader
-4. **Click "📥 Process Documents"** to extract text
-5. **Ask questions** or use templates with the document content
+4. **Click "📥 Process Documents"** to extract, chunk and index them
+5. **Ask questions** or use templates -- retrieval runs automatically
 
 ### Detailed Steps
 
@@ -42,17 +81,22 @@ The Local LLM Scientific Assistant now supports **uploading and processing PDF a
 
 ```
 1. Click the "📥 Process Documents" button
-2. Wait for processing (usually 1-10 seconds per file)
+2. Text is extracted, split into chunks, and embedded
+   (a progress bar shows the embedding stage)
 3. See success messages with document stats:
-   ✅ filename.pdf (2.5 MB, ~5,234 words, 32,145 characters)
+   ✅ filename.pdf (2.5 MB, ~5,234 words, 32,145 characters, 47 blocks)
+   ✅ Indexed 63 chunks -- documents are now searchable.
 ```
 
-#### Step 3: Use Document Content
+The sidebar then shows **🧠 Vector store: 63 chunks from 1 document(s)**.
+
+#### Step 3: Ask Questions
 
 **Option A - Direct Questions:**
 ```
 Type in chat: "What are the main findings of this study?"
-The document content is automatically included with your query
+The app searches your documents and supplies the most relevant
+passages to the model, cited as [S1], [S2], ...
 ```
 
 **Option B - Use Templates:**
@@ -60,7 +104,7 @@ The document content is automatically included with your query
 1. Open "Question Templates" expander
 2. Filter to "Document Analysis" category
 3. Select template like "Summarize Uploaded Document"
-4. Submit - document content included automatically
+4. Submit - retrieval runs exactly as it does for typed questions
 ```
 
 **Option C - Custom Analysis:**
@@ -82,6 +126,14 @@ After processing, the expander shows:
 - ✅ Filename and word count
 - 🗑️ Remove button for each document
 - 🗑️ Clear All button
+
+### Inspect Indexed Chunks
+
+The **"🔍 Inspect Indexed Chunks"** expander shows exactly what retrieval
+searches over: every chunk, its source page or slide, its detected section, and
+its size. Worth a look when an answer misses something you know is in the
+document -- it tells you whether the text was extracted and split sensibly, or
+whether the problem is further down the pipeline.
 
 ### Preview Content
 
@@ -106,7 +158,7 @@ The app includes **8 specialized templates** for document work:
 
 ### 1. Summarize Uploaded Document
 **Purpose**: Get comprehensive summary with key findings  
-**Use when**: You want an overview of the entire document
+**Use when**: You want an overview of the document as a whole
 
 ### 2. Extract Key Points from Document
 **Purpose**: Bullet-point list of main takeaways  
@@ -201,10 +253,17 @@ The app includes **8 specialized templates** for document work:
 
 ### 📝 Document Preparation
 
-1. **Use text-based PDFs**: Scanned PDFs (images) won't extract well
-2. **Check file size**: Keep under 10 MB for faster processing
-3. **Clean formatting**: Well-formatted documents extract better
-4. **Multiple files**: Upload all related docs together for comparison
+1. **Use text-based PDFs**: Scanned PDFs contain images, not text, and extract
+   to nothing. The app detects this and warns you at upload; run the file
+   through OCR first.
+2. **File size**: Up to 200 MB per file. Larger files simply take longer to
+   embed at upload — they do *not* degrade answer quality, because retrieval
+   searches for the relevant passages rather than sending everything.
+3. **Clean formatting**: Real heading styles (in DOCX) and consistent section
+   headings (in PDF) let the app tag chunks with their section, which makes
+   metadata filtering more accurate.
+4. **Multiple files**: Upload all related docs together for comparison — you can
+   restrict any search to a subset later from 🎛️ Retrieval Tuning.
 
 ### 🎯 Querying Tips
 
@@ -215,11 +274,20 @@ The app includes **8 specialized templates** for document work:
 
 ### ⚙️ Performance Tips
 
-1. **Context window**: Large documents may hit token limits
-   - Reduce "Context Length" in sidebar if needed
-   - Or ask about specific sections
-2. **Processing time**: Larger files take longer to read
-3. **Multiple queries**: Document stays loaded - ask many questions!
+1. **Context window**: *Raise* "Context Length", never lower it, when documents
+   are loaded. Retrieved passages are packed to a budget derived from that
+   setting, so lowering it means less evidence reaches the model. The app never
+   overflows the window -- if passages will not fit it says how many it left
+   out, in the 🔬 Retrieval Diagnostics panel.
+2. **Processing time**: The slow step is embedding, not reading. A 100-page
+   document is typically a few seconds; the "Add contextual headers" option is
+   far slower because it calls the model once per chunk.
+3. **Multiple queries**: Documents stay indexed for the session - ask many
+   questions without re-processing.
+4. **Document size is no longer a limit on answer quality.** Retrieval finds the
+   relevant passages wherever they are, so a 500-page manual works as well as a
+   2-page memo. Earlier versions pasted whole documents into the prompt and
+   silently lost everything past the context limit.
 
 ---
 
@@ -239,12 +307,35 @@ pip install PyPDF2
 pip install python-docx
 ```
 
-### ❌ "File too large (15.2 MB). Maximum size is 10 MB"
+### ❌ "No embedding model found" / "Documents extracted but NOT indexed"
+
+Document *search* needs an embedding model, which is separate from your chat
+model.
+
+**Solution:**
+```bash
+ollama pull nomic-embed-text
+```
+Then process the documents again. Until you do, the app answers from general
+knowledge and says so plainly -- it will not pretend to be reading your files.
+
+### ❌ "This PDF is likely scanned images; it needs OCR to be searchable"
+
+The PDF holds pictures of text rather than text. Nothing in this app can read
+it. Run it through an OCR tool first (macOS Preview, Adobe Acrobat, or
+`ocrmypdf`), then upload the OCR'd version.
+
+### ❌ Answers cite a source number that does not exist
+
+The app detects this and shows a warning above the answer. It means the model
+invented a citation. Lower the temperature, or switch to a larger chat model.
+
+### ❌ "File too large (215.2 MB). Maximum size is 200 MB"
 
 **Solutions:**
-- Split PDF into smaller files
-- Compress PDF using online tools
-- Extract only relevant pages
+- Split the PDF into smaller files and upload them together
+- Compress the PDF
+- Extract only the relevant pages
 
 ### ❌ "No text could be extracted from PDF"
 

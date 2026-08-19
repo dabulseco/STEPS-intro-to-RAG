@@ -310,7 +310,7 @@ Potential features for future versions:
 ## 📞 Support & Feedback
 
 For questions about changes:
-- Review `IMPLEMENTATION_SUMMARY.md` for detailed explanations
+- Review `ARCHITECTURE.md` for system design and `FILE_GUIDE.md` for the file map
 - Check `README.md` for usage instructions
 - See `QUICKSTART.md` for getting started
 - Review `ARCHITECTURE.md` for technical details
@@ -320,3 +320,126 @@ For questions about changes:
 **Version**: 2.0  
 **Release Date**: February 2026  
 **Upgrade**: Recommended for all users (no breaking changes)
+
+
+---
+
+# Changelog: v3.0 → v4.0 (Advanced Retrieval)
+
+**Release Date**: August 2026
+
+## Overview
+
+v4.0 replaces prompt-stuffing with a real retrieval pipeline. The user-facing
+modes (STRICT RAG / HYBRID / LLM) behave as before; what changed is that
+documents are now *searched* rather than pasted wholesale into the prompt.
+
+## The problem this fixes
+
+`num_ctx` capped at 8,192 tokens and defaulted to 2,048, while uploads were
+allowed up to 200 MB per file. Every uploaded document was concatenated and sent
+with every question, so Ollama silently truncated it — on a 20-page paper the
+model never saw most of the text, then answered confidently from the fragment
+that survived, or reported "not found in the provided document". This read as
+"the model is bad" when the pipeline was at fault.
+
+## Added
+
+### Retrieval engine (`rag_core/`, new package)
+- **Hybrid search**: Chroma vectors (semantic) + BM25 (keyword), fused with
+  Reciprocal Rank Fusion. Neither alone suffices — dense retrieval misses exact
+  identifiers, sparse misses paraphrases.
+- **Ephemeral vector store**: in-memory ChromaDB. Nothing is written to disk;
+  cleared on demand or when the app closes.
+- **Structure-aware chunking**: chunks never straddle a page or slide, and carry
+  source, page/slide, section and character span.
+- **Small-to-big retrieval**: precise child chunks are matched; the surrounding
+  parent passage is what reaches the model.
+- **Token-budgeted assembly**: context is packed to a budget derived from
+  `num_ctx`. Overflow is now structurally impossible, and anything dropped is
+  reported rather than lost silently.
+- **Query transformation**: follow-up condensation (on by default), query
+  rewriting, multi-query fan-out, HyDE, and metadata filter inference.
+- **Re-ranking**: LLM batch reranker (no extra dependency) or cross-encoder
+  (optional `sentence-transformers`).
+- **Verified citations**: answers cite `[S1]`-style markers; every marker is
+  checked against the sources actually supplied, and fabrications are flagged.
+- **Optional ingest enrichment**: contextual chunk headers and document
+  summaries, off by default with a cost estimate shown first.
+
+### UI (Streamlit, in `app.py`)
+- Embedding model selector, separate from the chat model
+- Vector store panel with chunk counts and a **Clear Vector Store** button
+- **🔍 Inspect Indexed Chunks** — see exactly what retrieval searches over
+- **📚 Sources** panel per answer, with page/section and retrieval scores
+- **🔬 Retrieval Diagnostics** panel — what was searched, found, and budgeted
+- **🎛️ Retrieval Tuning** — semantic↔keyword balance, passage counts, document filter
+- **🧪 Advanced Techniques** — per-technique toggles with latency warnings
+
+### Tests and tooling
+- `tests/test_rag_core.py` — 60 unit tests, no Ollama required (~0.3s)
+- `tools/eval_retrieval.py` — retrieval evaluation harness reporting hit rate
+  and MRR per configuration, so setting changes can be measured rather than guessed
+
+## Changed
+
+- **`num_ctx` range**: 256–8,192 (default 2,048) → 256–32,768 (default 8,192)
+- **Model dropdown** no longer lists embedding models, which cannot generate text
+- **Grounding rules moved to the system prompt**, where they hold for the whole
+  exchange instead of weakening as chat history grows
+- **Document extraction returns structured blocks** carrying page/slide and
+  section, rather than one flat string
+- **Mode banners key off the index**, not extracted text
+- **Both answer paths unified**: chat input and template form now share one
+  function, so their grounding cannot drift apart
+
+## Fixed
+
+- **Silent prompt truncation** — the headline bug above. Verified: a fact on
+  page 118 of a 120-page document is now retrieved correctly at `num_ctx=2048`,
+  the setting under which the old code discarded 58% of the document.
+- **Strict mode fell through to general knowledge** when nothing was indexed —
+  the exact substitution the mode exists to prevent. It now declines outright.
+- **Duplicated prompt-assembly blocks** (~70 lines copy-pasted between the chat
+  and template paths) collapsed into one call.
+- **`has_documents` parameter accepted but never used** in `build_system_prompt`.
+- **Second vector store crashed the app**: `chromadb.EphemeralClient()` returns a
+  process-wide singleton, so switching embedding model collided on the collection
+  name. Collection names are now unique per instance.
+- **Mode banner could claim "answers ONLY from your documents"** while nothing
+  was indexed.
+- **BM25 ranked on grammar**: stopword filtering added after an administrative
+  passage outranked the correct one for a naturally-phrased question.
+- **`python-pptx` missing from `requirements.txt`** despite PPTX being supported.
+- **Scanned PDFs failed silently** — now detected and reported at upload.
+- **Duplicate filenames collided** in chunk IDs.
+
+## Migration
+
+No breaking changes to templates, exports, or saved data. Two steps:
+
+```bash
+pip install -r requirements.txt     # adds chromadb, rank-bm25, python-pptx
+ollama pull nomic-embed-text        # required for document search
+```
+
+Without an embedding model the app still runs, but documents cannot be indexed —
+and it says so plainly rather than answering from general knowledge while
+appearing to read your files.
+
+## Known limitations
+
+- **No OCR.** Scanned PDFs yield no text; detected and reported at upload.
+- **Token budgeting is a 4-chars-per-token heuristic** — Ollama exposes no
+  per-model tokenizer. Deliberately conservative.
+- **Enrichment costs one model call per chunk**, repaid every session since the
+  index is ephemeral. Off by default.
+- **Advanced techniques each add a local model call.** With all enabled a query
+  took ~40s versus ~12s baseline on the test hardware.
+
+---
+
+**Version**: 4.0
+**Release Date**: August 2026
+**Upgrade**: Recommended. No breaking changes; requires an embedding model for
+document search.

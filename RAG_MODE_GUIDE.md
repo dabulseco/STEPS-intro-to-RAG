@@ -264,22 +264,42 @@ system_prompt = build_base_prompt(perspective, audience)
 
 ### Query Structure
 
+Both the chat input and the template form route through a single function,
+`rag_core.pipeline.answer()`, so their grounding behaviour cannot drift apart.
+
 ```python
-# User query + document content
-full_query = f"""
-{user_question}
+# 1. Transform the question (optional stages, off by default)
+search_query = transformer.transform(question, chat_history, settings)
 
---- UPLOADED DOCUMENT CONTENT ---
+# 2. Search both indexes and fuse the rankings
+hits = store.search(search_query, dense_weight=0.5)   # vectors + BM25 via RRF
 
-{extracted_document_text}
-"""
+# 3. Optionally re-score the survivors against the question
+hits = reranker(search_query, hits, top_k=5)
 
-# With strict RAG system prompt
-response = llm.generate(
-    system_prompt=strict_rag_prompt,
-    user_query=full_query
+# 4. Pack them to a budget derived from num_ctx -- never overflow it
+context = assemble_context(hits, num_ctx=num_ctx)
+
+# 5. Grounding rules live in the SYSTEM prompt; the user turn carries evidence
+answer = llm.generate(
+    system_prompt=build_system_prompt(perspective, audience, grounding_mode="strict"),
+    user_query=f"DOCUMENT EXCERPTS:\n{context.text}\n\nQUESTION: {question}",
 )
+
+# 6. Verify the citations rather than trusting them
+report = verify_citations(answer, context.sources)
 ```
+
+Two things changed from earlier versions and both matter:
+
+**The whole document is no longer sent.** Only retrieved passages are, packed to
+a measured budget. Previously the entire text was pasted in and anything beyond
+the context limit was silently truncated -- so on a long document the model was
+answering from a fragment without anyone knowing.
+
+**Grounding rules moved to the system prompt.** They used to be restated in every
+user message, where they competed with the conversation around them and weakened
+as history grew. In the system prompt they stay in force for the whole exchange.
 
 ---
 
@@ -292,10 +312,17 @@ response = llm.generate(
 2. Information might be implied but not explicitly stated
 3. Text extraction might have missed a section
 
-**Solution**:
-- Use "Preview Document Content" to see what was extracted
-- Rephrase question to match document wording
-- Ask: "Is there any mention of X in the document?"
+**Solution**, in order of usefulness:
+1. Open **"🔍 Inspect Indexed Chunks"** and confirm the text was extracted at
+   all. Images, graphs and scanned pages yield nothing.
+2. Open **"🔬 Retrieval Diagnostics"** on the answer to see what was actually
+   searched for and how many passages came back. This separates a *retrieval*
+   failure from a *generation* failure.
+3. Slide **semantic ↔ keyword balance** toward keyword if you are searching for
+   an exact term, or toward semantic if you are paraphrasing.
+4. Turn on **"Search multiple phrasings"** or **"Re-rank retrieved passages"**
+   under 🧪 Advanced Techniques.
+5. Raise **"Passages sent to the model"** in 🎛️ Retrieval Tuning.
 
 ### AI still seems to use external knowledge
 

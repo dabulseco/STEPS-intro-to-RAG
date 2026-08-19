@@ -4,6 +4,19 @@ A comprehensive Streamlit application for interacting with local Large Language 
 
 ## ✨ Features
 
+### 🔍 Advanced Retrieval (RAG)
+- **Real retrieval pipeline**: documents are chunked, embedded, and searched — not pasted wholesale into the prompt
+- **Hybrid search**: semantic (vector) + keyword (BM25) retrieval fused with Reciprocal Rank Fusion, so both paraphrases and exact identifiers (gene names, catalog numbers) are findable
+- **Ephemeral vector store**: in-memory ChromaDB, cleared on demand or when the app closes — nothing is written to disk
+- **Structure-aware chunking**: chunks never straddle a page or slide, and each carries its source, page/slide, and section
+- **Small-to-big retrieval**: precise child chunks are matched, but the surrounding passage is what reaches the model
+- **Token-budgeted context**: retrieved evidence is packed to fit the context window instead of being silently truncated
+- **Verified citations**: answers cite `[S1]`-style markers traced to real passages, and fabricated markers are flagged automatically
+- **Query transformation**: follow-up condensation, query rewriting, multi-query fan-out, and HyDE — each independently toggleable
+- **Re-ranking**: optional LLM or cross-encoder re-scoring of retrieved candidates
+- **Metadata pre-filtering**: restrict search to chosen documents, manually or inferred from the question
+- **Retrieval diagnostics**: per-answer panel showing what was searched, what was found, and how the context budget was spent
+
 ### 📄 Document Upload & Analysis
 - **Upload PDF, DOCX, and PPTX files**: Extract text from research papers, reports, documents, and presentations
 - **Multiple file support**: Upload and analyze multiple documents simultaneously
@@ -46,24 +59,46 @@ A comprehensive Streamlit application for interacting with local Large Language 
   - Temperature control (0.0 - 2.0)
   - Top-K sampling (1 - 100)
   - Top-P (nucleus) sampling (0.0 - 1.0)
-  - Context window size (256 - 8192 tokens)
+  - Context window size (256 - 32,768 tokens)
+- **Separate embedding model selection**: embedding models are detected and listed separately from chat models
 
 ## 📁 Project Structure
 
 ```
 ollama_app/
-├── app.py                          # Main Streamlit application
-├── requirements.txt                 # Python dependencies
-├── README.md                        # This file
+├── app.py                          # Streamlit UI (view layer only)
+├── requirements.txt                # Python dependencies
+├── README.md                       # This file
+├── ADVANCED_RAG_PLAN.md            # Design and rationale for the retrieval engine
 ├── config/
 │   ├── default_templates.json      # Default question templates (30+ templates)
 │   └── question_templates.json     # User's custom templates (auto-created)
+├── rag_core/                       # Retrieval engine -- no Streamlit, no persistence assumptions
+│   ├── config.py                   # Tunable constants
+│   ├── ollama_api.py               # Model discovery (chat vs embedding)
+│   ├── embeddings.py               # Batched Ollama embedding client
+│   ├── chunker.py                  # Structure-aware chunking + metadata
+│   ├── store.py                    # Ephemeral Chroma + BM25 + RRF fusion
+│   ├── query_transformer.py        # Condense / rewrite / multi-query / HyDE / filter inference
+│   ├── reranker.py                 # LLM and cross-encoder re-ranking
+│   ├── context_assembler.py        # Token-budgeted context packing + citations
+│   ├── citations.py                # Citation verification
+│   ├── enrichment.py               # Optional ingest-time contextual headers
+│   └── pipeline.py                 # Orchestrator -- the single answer path
+├── tests/
+│   └── test_rag_core.py            # Unit tests (no Ollama required)
+├── tools/
+│   └── eval_retrieval.py           # Retrieval evaluation harness
 └── utils/
     ├── template_manager.py         # Template CRUD operations
     ├── prompt_builder.py           # Dynamic system prompt generation
     ├── html_export.py              # HTML export with Markdown support
-    └── document_processor.py       # PDF, DOCX, and PPTX text extraction (200 MB limit)
+    └── document_processor.py       # PDF, DOCX, and PPTX extraction into structured blocks
 ```
+
+`rag_core/` imports no Streamlit and makes no assumption about how long the
+vector store lives. Making it persistent is a one-line change in
+`rag_core/store.py` (`EphemeralClient` -> `PersistentClient`).
 
 ## 🚀 Installation
 
@@ -89,6 +124,8 @@ This will install:
 - PyPDF2 (PDF text extraction)
 - python-docx (DOCX text extraction)
 - python-pptx (PPTX text extraction)
+- chromadb (in-memory vector store)
+- rank-bm25 (keyword retrieval)
 - Other supporting libraries
 
 3. **Start Ollama** (in a separate terminal)
@@ -96,7 +133,15 @@ This will install:
 ollama serve
 ```
 
-4. **Pull at least one model** (if you haven't already)
+4. **Pull an embedding model** (required for document retrieval)
+```bash
+ollama pull nomic-embed-text
+```
+Without one, documents can still be uploaded and read, but they cannot be
+indexed or searched — and the app will tell you so rather than pretending
+otherwise.
+
+5. **Pull at least one chat model** (if you haven't already)
 ```bash
 ollama pull llama2
 # or
@@ -104,7 +149,7 @@ ollama pull mistral
 # or any other model you prefer
 ```
 
-5. **Run the application**
+6. **Run the application**
 ```bash
 streamlit run app.py
 ```

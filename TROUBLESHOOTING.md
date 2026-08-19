@@ -14,11 +14,18 @@ curl http://localhost:11434/api/tags
 ollama list
 
 # 3. Check Python packages
-pip list | grep -E "streamlit|langchain|requests"
+pip list | grep -E "streamlit|langchain|requests|chromadb|rank-bm25"
 
-# 4. Try running the app
+# 4. Check you have an embedding model (needed for document search)
+ollama list | grep -E "embed"
+# If nothing: ollama pull nomic-embed-text
+
+# 5. Try running the app
 cd ollama_app
 streamlit run app.py
+
+# 6. Run the retrieval unit tests (no Ollama needed, ~1 second)
+python -m pytest tests/ -q
 ```
 
 If all work, you're good! If not, see specific issues below.
@@ -125,9 +132,16 @@ ollama pull llama2:7b
 ollama pull mistral:7b
 ```
 
-#### Solution B: Reduce Context Length
-- In sidebar, reduce "Context Length" slider to 1024 or 512
-- This limits conversation history but speeds up processing
+#### Solution B: Turn off optional model calls
+Each option under **🧪 Advanced Techniques** costs an extra model call per
+question, and follow-up generation costs one more. With everything on, a
+question can take 3-4x as long. Turn off what you are not benefiting from --
+**"🔬 Retrieval Diagnostics"** on each answer shows which stages ran.
+
+> ⚠️ **Do not lower "Context Length" to speed up document questions.** That
+> setting sizes the budget for retrieved evidence, so lowering it sends the
+> model *less* of your document and makes answers worse. It is safe to lower
+> only when no documents are loaded.
 
 #### Solution C: Adjust Temperature
 - Lower temperature = faster but less creative
@@ -155,6 +169,83 @@ for past_query, past_response in chat_history[-3:]:  # Only last 3
 
 ---
 
+### 🔴 Issue 3b: Document Questions Answered From General Knowledge
+
+**Symptoms**:
+- Banner reads "⚠️ DOCUMENTS NOT INDEXED"
+- Sidebar shows "Documents extracted but NOT indexed"
+- Answers ignore your uploaded files
+
+**Cause**: No embedding model. Extraction and *search* are separate steps, and
+search needs a model your chat model cannot provide.
+
+**Solution**:
+```bash
+ollama pull nomic-embed-text
+```
+Then press "📥 Process Documents" again. The sidebar should show
+**🧠 Vector store: N chunks**.
+
+---
+
+### 🔴 Issue 3c: Retrieval Misses Something You Know Is There
+
+**Symptoms**:
+- "This information is not found in the provided documents", but you can see it
+- The right passage never appears under 📚 Sources
+
+**Diagnose in this order** -- each step rules out one layer:
+
+1. **Was the text extracted?** Open **"🔍 Inspect Indexed Chunks"**. If the
+   passage is not there, the problem is extraction, not search. Scanned PDFs and
+   text inside images yield nothing.
+2. **What was actually searched for?** Open **"🔬 Retrieval Diagnostics"** on
+   the answer. If a query rewrite mangled your question, turn off
+   "Rewrite query for retrieval".
+3. **Was it found but ranked too low?** If diagnostics show many hits, raise
+   "Passages sent to the model", or turn on "Re-rank retrieved passages".
+4. **Wrong search method?** Exact identifiers (part numbers, gene names) need
+   the balance slider toward **keyword**; paraphrased questions need
+   **semantic**.
+5. **Did it get cut for budget?** Diagnostics reports passages dropped for the
+   context budget. Raise "Context Length".
+
+**Measure rather than guess** -- run the evaluation harness on your own corpus:
+```bash
+python tools/eval_retrieval.py --docs path/to/docs --questions golden.json
+```
+where `golden.json` is `[{"question": "...", "expect": "text that must appear"}]`.
+It reports hit rate and MRR per configuration, so you can see whether a setting
+helps generally or only on the one question you happened to test.
+
+---
+
+### 🔴 Issue 3d: Answer Cites a Source That Does Not Exist
+
+**Symptoms**: A warning above the answer, e.g. "⚠️ Cites [S7], which was never
+provided."
+
+**Cause**: The model invented a citation. The app detects this by checking every
+`[S#]` marker against the sources actually supplied.
+
+**Solutions**:
+- Lower Temperature (0.1-0.3)
+- Use a larger chat model -- small models fabricate citations more often
+- Reduce "Passages sent to the model"; long source lists confuse numbering
+
+---
+
+### 🔴 Issue 3e: Documents Disappear After Restarting
+
+**Not a bug.** The vector store is deliberately in-memory only: it is cleared
+when you press "🗑️ Clear Vector Store" and when the app closes, and nothing is
+written to disk. Re-upload and re-process to search them again.
+
+If you need documents to persist between sessions, that is a change to one line
+in `rag_core/store.py` (`EphemeralClient` → `PersistentClient(path=...)`).
+
+---
+
 ### 🔴 Issue 4: Import Errors
 
 **Symptoms**:
@@ -174,7 +265,18 @@ pip install langchain-ollama
 pip install langchain-core
 pip install requests
 pip install markdown
+pip install PyPDF2 python-docx python-pptx   # document extraction
+pip install chromadb rank-bm25               # retrieval
 ```
+
+**`ModuleNotFoundError: No module named 'chromadb'` or `'rank_bm25'`** means the
+retrieval engine cannot start. **`No module named 'pptx'`** means PPTX uploads
+will fail while PDF and DOCX still work.
+
+**`ImportError` mentioning `sentence-transformers`** appears only if you selected
+the cross-encoder re-ranker. Either install it (`pip install
+sentence-transformers`) or switch the re-ranker back to "Local LLM", which needs
+no extra package.
 
 ---
 
@@ -411,6 +513,41 @@ print('HTML length:', len(html))
 print('Has Bootstrap:', 'bootstrap' in html.lower())
 "
 ```
+
+#### Test the Retrieval Engine:
+```bash
+# Full unit suite -- no Ollama required, runs in about a second
+python -m pytest tests/ -q
+
+# End-to-end retrieval against a synthetic corpus (needs Ollama + an
+# embedding model). Compares semantic, keyword and hybrid search.
+python tools/eval_retrieval.py --demo
+```
+
+#### Test Embedding Connectivity:
+```python
+python3 -c "
+from rag_core.embeddings import OllamaEmbedder
+from rag_core.ollama_api import list_embedding_models
+print('Embedding models available:', list_embedding_models())
+e = OllamaEmbedder(model='nomic-embed-text')
+v = e.embed_query('hello world')
+print('Vector dimension:', len(v))
+"
+```
+
+#### Test Chunking of a Real File:
+```python
+python3 -c "
+from utils.document_processor import DocumentProcessor as DP
+blocks = DP.extract_blocks_from_pdf(open('yourfile.pdf','rb').read())
+print('blocks:', len(blocks))
+for b in blocks[:3]:
+    print(' page', b['page'], '|', b['section'], '|', str(b['text'])[:60])
+"
+```
+If this prints no blocks, the problem is extraction (likely a scanned PDF), not
+retrieval.
 
 ---
 

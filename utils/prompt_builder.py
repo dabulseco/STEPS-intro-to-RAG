@@ -55,23 +55,55 @@ class PromptBuilder:
         }
     }
     
+    # Grounding rules, keyed by answer-source mode. These live in the SYSTEM
+    # prompt rather than in the user turn: a constraint restated in every user
+    # message competes with the conversation around it and weakens as history
+    # grows, whereas a system-level rule stays in force for the whole exchange.
+    GROUNDING_MODES = {
+        "strict": """ANSWER SOURCE -- DOCUMENTS ONLY (STRICT):
+You are given numbered excerpts from the user's documents, labelled [S1], [S2], and so on.
+- Answer EXCLUSIVELY from those excerpts. Do not use outside knowledge.
+- Cite the excerpt supporting each claim inline, e.g. "the sample was heated to 60C [S2]".
+- If the excerpts do not contain the answer, say exactly: "This information is not found in the provided documents." Do not guess, and do not fill the gap from general knowledge.
+- Never invent a citation. Only cite markers that actually appear in the excerpts.""",
+
+        "hybrid": """ANSWER SOURCE -- DOCUMENTS FIRST, GENERAL KNOWLEDGE PERMITTED:
+You are given numbered excerpts from the user's documents, labelled [S1], [S2], and so on.
+- Prefer the excerpts whenever they address the question, and cite them inline, e.g. "yields rose by 12% [S3]".
+- You may add relevant general knowledge, but say plainly when you are doing so.
+- Keep the two clearly distinguishable so the reader always knows which is which.
+- Never invent a citation. Only cite markers that actually appear in the excerpts.""",
+
+        "llm": """ANSWER SOURCE -- GENERAL KNOWLEDGE:
+No documents have been provided. Answer from your own knowledge, and be explicit about the limits of your certainty.""",
+    }
+
     @staticmethod
-    def build_system_prompt(perspective: str, audience: str, has_documents: bool = False) -> str:
+    def build_system_prompt(perspective: str, audience: str, has_documents: bool = False,
+                            grounding_mode: str = None) -> str:
         """
         Construct a system prompt based on selected perspective and audience.
-        
+
         Args:
             perspective: Who is writing (Scientist, High School Teacher, Lay Person)
             audience: Who is reading (Scientist, College Student, etc.)
-            has_documents: Whether documents have been uploaded (for reference only)
-            
+            has_documents: Whether retrieved document context accompanies the query
+            grounding_mode: 'strict', 'hybrid' or 'llm'. Defaults to 'strict'
+                when documents are present and 'llm' when they are not.
+
         Returns:
             Formatted system prompt string for the LLM
         """
         # Get perspective and audience details
         persp_info = PromptBuilder.PERSPECTIVES.get(perspective, PromptBuilder.PERSPECTIVES["Scientist"])
         aud_info = PromptBuilder.AUDIENCES.get(audience, PromptBuilder.AUDIENCES["Lay Person"])
-        
+
+        if grounding_mode is None:
+            grounding_mode = "strict" if has_documents else "llm"
+        grounding = PromptBuilder.GROUNDING_MODES.get(
+            grounding_mode, PromptBuilder.GROUNDING_MODES["llm"]
+        )
+
         # Build the system prompt
         prompt = f"""You are a {persp_info['description']} communicating with {aud_info['description']}.
 
@@ -81,15 +113,16 @@ Your explanations should be pitched at {aud_info['level']}.
 
 {PromptBuilder._get_specific_guidance(perspective, audience)}
 
+{grounding}
+
 Core principles:
 - Provide accurate, evidence-based information
 - Never fabricate information if unsure; acknowledge limitations
 - Be concise yet thorough
 - Use examples and analogies when helpful
 - Maintain a helpful and supportive tone
-- When document content is provided, respect the specific instructions about how to use it
 """
-        
+
         return prompt.strip()
     
     @staticmethod

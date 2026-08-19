@@ -11,14 +11,23 @@ cd ollama_app
 pip install -r requirements.txt
 ```
 
-### 3. Start Ollama and Download a Model
+### 3. Start Ollama and Download Models
 ```bash
 # In terminal 1: Start Ollama
 ollama serve
 
-# In terminal 2: Pull a model (first time only)
+# In terminal 2: Pull a chat model (first time only)
 ollama pull llama2
+
+# And an embedding model -- required for document search
+ollama pull nomic-embed-text
 ```
+
+**Why two models?** They do different jobs. The chat model writes answers; the
+embedding model turns your documents into searchable vectors. Without an
+embedding model you can still chat and still upload documents, but the app
+cannot search them -- and it will say so rather than quietly answering from
+general knowledge.
 
 ### 4. Launch the App
 ```bash
@@ -45,6 +54,21 @@ The app opens automatically in your browser at `http://localhost:8501`
 
 ### 3. Try Free-Form Chat
 Just type in the chat input: "Explain how CRISPR works"
+
+### 4. Search Your Own Documents
+1. Open **"📄 Upload Documents"** on the main page
+2. Choose a PDF, DOCX or PPTX and click **"📥 Process Documents"**
+3. Watch the progress bar as chunks are embedded
+4. The sidebar now shows **🧠 Vector store: N chunks**
+5. Ask a question about the document
+
+The app searches your documents and answers only from what it finds, citing
+each passage as `[S1]`, `[S2]`. Expand **"📚 Sources"** under any answer to see
+the exact text, page number and section behind each citation.
+
+**Your documents are never written to disk.** The index lives in memory and
+disappears when you close the app, or when you press **"🗑️ Clear Vector
+Store"** in the sidebar.
 
 ## Key Features to Explore
 
@@ -109,14 +133,61 @@ A: Yes! Everything runs locally. No internet needed after installation.
 A: Start with `llama2` (good balance of speed and quality). Try `mistral` for coding questions.
 
 **Q: Why are responses slow?**  
-A: Try reducing "Context Length" in sidebar settings, or use a smaller model variant (e.g., `llama2:7b`).
+A: Use a smaller model variant (e.g., `llama2:7b`), and turn off options under
+**"🧪 Advanced Techniques"** -- each one adds a model call. Turning off
+**"Generate follow-up questions"** saves a call on every answer.
+
+Note: do *not* lower "Context Length" to speed things up when documents are
+loaded. That shrinks the budget for retrieved evidence, so fewer passages reach
+the model and answers get worse.
+
+**Q: Do I have to re-upload my documents every time?**  
+A: Yes. The vector store is deliberately temporary -- it lives in memory only
+and is gone when the app closes. Nothing is written to disk.
+
+**Q: The app says my documents aren't indexed. What now?**  
+A: You are missing an embedding model. Run `ollama pull nomic-embed-text` and
+process the documents again.
+
+**Q: What do the [S1] markers in answers mean?**  
+A: They are citations. Each points to a retrieved passage listed under the
+**"📚 Sources"** panel below the answer. If the app ever cites a number that
+was not supplied, it flags the answer with a warning.
+
+## Tuning Retrieval (optional)
+
+Once documents are loaded, two sidebar panels appear:
+
+**🎛️ Retrieval Tuning** -- the one setting worth knowing is the
+**semantic ↔ keyword balance**. Slide it toward keyword when exact terms matter
+(part numbers, gene names, statute references); toward semantic for
+conceptual or paraphrased questions. The default 50/50 is a good starting point.
+
+**🧪 Advanced Techniques** -- each costs an extra model call, so turn on only
+what helps your documents:
+
+| Option | Turn it on when |
+|---|---|
+| Resolve follow-up references | *(on by default)* you ask follow-ups like "how does that compare?" |
+| Rewrite query for retrieval | your wording differs from the documents' terminology |
+| Search multiple phrasings | you are missing passages you know exist |
+| HyDE | questions are short and jargon-heavy |
+| Infer document/section filter | you name a document or section in the question |
+| Re-rank retrieved passages | the right passage is found but ranked too low |
+
+Not sure which help? Run the evaluation harness against your own documents:
+
+```bash
+python tools/eval_retrieval.py --docs path/to/docs --questions golden.json
+```
 
 ## Next Steps
 
 1. ✅ Explore all template categories
 2. ✅ Create 2-3 custom templates for your common questions
 3. ✅ Try different perspective/audience combinations
-4. ✅ Experiment with model parameters
+4. ✅ Upload a document and inspect the 📚 Sources behind an answer
+5. ✅ Experiment with model parameters
 5. ✅ Export and save your important conversations
 
 ## Need Help?

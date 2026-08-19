@@ -16,29 +16,55 @@ ollama_app/                              📦 Main project directory
 │   └── README.md                        📘 Comprehensive documentation
 │
 ├── 🔧 APPLICATION FILES (Core Code)
-│   ├── app.py                           💻 Main Streamlit application (468 lines)
+│   ├── app.py                           💻 Streamlit UI -- all widgets live here
 │   └── requirements.txt                 📋 Python dependencies
 │
 ├── 📚 DOCUMENTATION FILES
-│   ├── IMPLEMENTATION_SUMMARY.md        📊 Detailed implementation report
 │   ├── ARCHITECTURE.md                  🏗️  Visual system architecture
-│   ├── CHANGELOG.md                     📝 Changes from original code
-│   └── TROUBLESHOOTING.md              🔧 Comprehensive problem-solving guide
+│   ├── CHANGELOG.md                     📝 Version history
+│   ├── ADVANCED_RAG_PLAN.md             🔍 Retrieval engine design & rationale
+│   └── TROUBLESHOOTING.md               🔧 Comprehensive problem-solving guide
 │
 ├── ⚙️ CONFIG FILES (Template Storage)
 │   └── config/
 │       └── default_templates.json       🎯 30 built-in question templates
 │       # question_templates.json        (Auto-created on first run)
 │
-└── 🛠️ UTILITY MODULES (Backend Logic)
+├── 🔍 RETRIEVAL ENGINE (rag_core/)      ← No Streamlit; portable to other apps
+│   ├── config.py                        🎛️  Tunable constants
+│   ├── ollama_api.py                    🔌 Model discovery (chat vs embedding)
+│   ├── embeddings.py                    🧬 Batched Ollama embedding client
+│   ├── chunker.py                       ✂️  Structure-aware chunking + metadata
+│   ├── store.py                         🗄️  Ephemeral Chroma + BM25 + RRF fusion
+│   ├── query_transformer.py             🔄 Condense/rewrite/multi-query/HyDE
+│   ├── reranker.py                      🏅 LLM & cross-encoder re-ranking
+│   ├── context_assembler.py             📦 Token-budgeted packing + citations
+│   ├── citations.py                     ✅ Citation verification
+│   ├── enrichment.py                    🧠 Optional contextual chunk headers
+│   └── pipeline.py                      🎯 Orchestrator -- the single answer path
+│
+├── 🧪 TESTS & TOOLS
+│   ├── tests/test_rag_core.py           ✔️  60 unit tests (no Ollama needed)
+│   └── tools/eval_retrieval.py          📏 Retrieval evaluation harness
+│
+└── 🛠️ UTILITY MODULES (App-specific)
     └── utils/
         ├── __init__.py                  📦 Package initialization
-        ├── template_manager.py          🗂️  Template CRUD operations (205 lines)
-        ├── prompt_builder.py            🎭 Dynamic prompt generation (178 lines)
-        └── html_export.py               📄 HTML export & Markdown (369 lines)
+        ├── template_manager.py          🗂️  Template CRUD operations
+        ├── prompt_builder.py            🎭 Dynamic prompt generation + grounding rules
+        ├── html_export.py               📄 HTML export & Markdown
+        └── document_processor.py        📑 PDF/DOCX/PPTX → structured blocks
 ```
 
-**Total**: 13 files | ~1,600 lines of code + documentation
+### Why `rag_core/` is separate from `utils/`
+
+`utils/` holds helpers specific to *this* app. `rag_core/` is a self-contained
+retrieval engine that imports no Streamlit and assumes nothing about how long
+the vector store lives. That boundary exists so the engine can be copied into
+another application unchanged -- making it persistent is a one-line change in
+`rag_core/store.py` (`EphemeralClient` → `PersistentClient`).
+
+Streamlit is still the UI. All 379 widget calls live in `app.py`.
 
 ---
 
@@ -58,7 +84,7 @@ ollama_app/                              📦 Main project directory
 1. **config/default_templates.json** - See all templates
 2. **utils/prompt_builder.py** - Modify perspectives/audiences
 3. **utils/template_manager.py** - Understand template system
-4. **IMPLEMENTATION_SUMMARY.md** - Extension points
+4. **ADVANCED_RAG_PLAN.md** - Retrieval engine design and extension points
 
 ### 🐛 Troubleshooting
 1. **TROUBLESHOOTING.md** - Start here for any issues
@@ -67,7 +93,7 @@ ollama_app/                              📦 Main project directory
 
 ### 🏗️ Understanding Architecture
 1. **ARCHITECTURE.md** - Visual diagrams and data flow
-2. **IMPLEMENTATION_SUMMARY.md** - Design decisions
+2. **ADVANCED_RAG_PLAN.md** - Design decisions and rationale
 3. **CHANGELOG.md** - What's new vs original
 
 ---
@@ -197,6 +223,57 @@ PERSPECTIVES = {
 - Add PDF export capability
 - Customize table rendering
 
+### Retrieval Engine Modules (`rag_core/`)
+
+None of these import Streamlit. Each can be tested and reused on its own.
+
+#### `rag_core/pipeline.py` — the orchestrator
+**Purpose**: The single answer path for the whole app. Both the chat input and
+the template form call `answer()`, which is what keeps their grounding behaviour
+identical (they used to carry separate copies of the prompt logic and could
+drift apart).
+**Key functions**: `answer()`, `retrieve()`, `resolve_mode()`
+**Stages**: condense → transform → retrieve → rerank → assemble → generate
+
+#### `rag_core/store.py` — hybrid index
+**Purpose**: Holds two indexes over the same chunks — Chroma vectors for
+semantic search, BM25 for keyword search — and fuses their rankings with
+Reciprocal Rank Fusion.
+**Key class**: `EphemeralRagStore` (`add_chunks`, `search`, `clear`, `close`)
+**To make persistent**: change `_new_client()` to return
+`chromadb.PersistentClient(path=...)`. That is the only line that decides it.
+
+#### `rag_core/chunker.py` — splitting + metadata
+**Purpose**: Turns extracted blocks into small "child" chunks for matching, each
+carrying a larger "parent" window for the model to read, plus source/page/
+section metadata. Chunks never straddle a page boundary.
+**When to edit**: chunk sizes and overlap live in `rag_core/config.py`.
+
+#### `rag_core/context_assembler.py` — the truncation fix
+**Purpose**: Packs retrieved passages to a budget derived from `num_ctx` and
+numbers them `[S1]`, `[S2]`. This is what makes silent prompt truncation
+impossible; anything that will not fit is *reported*, not dropped quietly.
+
+#### `rag_core/query_transformer.py` — query rewriting
+**Purpose**: Condensation (resolving "that" against the conversation), query
+rewriting, multi-query fan-out, HyDE, and metadata filter inference. Every stage
+falls back to the user's original wording if the model returns something
+unusable.
+
+#### `rag_core/reranker.py` — precision pass
+**Purpose**: Re-scores retrieved candidates against the question. `LLMReranker`
+scores all candidates in one call; `CrossEncoderReranker` is more accurate but
+needs `sentence-transformers`. Both fall back to retrieval order on failure.
+
+#### `rag_core/citations.py` — citation checking
+**Purpose**: Verifies every `[S#]` marker against the sources actually supplied,
+so a fabricated citation is caught rather than trusted. Deterministic — no model
+call.
+
+#### `rag_core/embeddings.py`, `ollama_api.py`, `enrichment.py`, `config.py`
+Batched embedding client; model discovery that separates chat from embedding
+models; optional ingest-time contextual headers; and all tunable constants.
+
 ### Documentation Files
 
 #### `README.md` (Comprehensive Guide)
@@ -222,16 +299,14 @@ PERSPECTIVES = {
 
 **For**: New users wanting to get started fast
 
-#### `IMPLEMENTATION_SUMMARY.md` (Technical Report)
+#### `ADVANCED_RAG_PLAN.md` (Retrieval Engine Design)
 **Sections**:
-- Project overview
-- Completed features (detailed)
-- Architecture & code organization
-- Changes from original code
-- Statistics
-- Extension points
+- Why the retrieval layer was added, and the bug it fixes
+- How ephemerality shapes the design
+- Every technique used, ingest-side and retrieval-side
+- Implementation status, verified behaviour, and known limitations
 
-**For**: Developers wanting technical details
+**For**: Developers extending retrieval, or porting `rag_core/` to another app
 
 #### `ARCHITECTURE.md` (Visual Guide)
 **Sections**:
@@ -291,7 +366,7 @@ PERSPECTIVES = {
 
 **Understanding the Code**:
 1. Read: `ARCHITECTURE.md` - See system design
-2. Read: `IMPLEMENTATION_SUMMARY.md` - Understand decisions
+2. Read: `ADVANCED_RAG_PLAN.md` - Understand design decisions
 3. Review: `app.py` - Main flow
 4. Review: `utils/` files - Business logic
 
@@ -348,7 +423,6 @@ utils/template_manager.py      ~11 KB
 utils/prompt_builder.py        ~10 KB
 config/default_templates.json  ~12 KB
 README.md                      ~25 KB
-IMPLEMENTATION_SUMMARY.md      ~18 KB
 ARCHITECTURE.md                ~10 KB
 CHANGELOG.md                   ~12 KB
 TROUBLESHOOTING.md            ~15 KB
