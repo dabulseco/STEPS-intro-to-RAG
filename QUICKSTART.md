@@ -44,13 +44,17 @@ The app opens automatically in your browser at `http://localhost:8501`
 - **Audience**: Choose "College Student" (who's reading)
 - **Model**: Select "llama2" (or whichever model you downloaded)
 
-### 2. Try a Template
-1. Click **"📋 Question Templates"** (main page)
-2. Select category: **"Teaching"**
-3. Choose: **"Explain Scientific Concept"**
-4. Click **"📝 Use Template with Form"**
-5. Enter a concept like: "photosynthesis"
-6. Click **"🚀 Submit Question"**
+### 2. Save Your First Template
+The app starts with an **empty** template library -- you build it from the
+questions you actually ask.
+
+1. Go to **"Manage Templates"** (left sidebar) → **"➕ Add Template"**
+2. Name: `Explain Scientific Concept`
+3. Category: `Teaching`
+4. Template text: `Explain this scientific concept clearly:`
+5. Check **"Requires user input"**, then click **"➕ Add Template"**
+6. Back on the Chat page, open **"📋 Question Templates"**, pick it, click
+   **"📝 Use Template with Form"**, enter `photosynthesis`, and submit.
 
 ### 3. Try Free-Form Chat
 Just type in the chat input: "Explain how CRISPR works"
@@ -79,12 +83,17 @@ Try different combinations:
 - **Lay Person → Scientist**: Informal but detailed
 
 ### ✅ Browse All Templates
-Navigate to **"Manage Templates"** (left sidebar) to see all 30+ templates organized by:
+Navigate to **"Manage Templates"** (left sidebar) to manage your library. The
+category list is ready to organize into, even though it starts empty:
 - Research (papers, methods, critique)
 - Teaching (lessons, analogies, experiments)
 - Laboratory (protocols, safety, troubleshooting)
 - Statistics (tests, interpretation)
 - And more!
+
+⚠️ **Avoid "Reset to Defaults"** unless you have backed up
+`config/question_templates.json`. The defaults file is empty, so reset deletes
+your templates and restores nothing.
 
 ### ✅ Create Your Own Template
 1. Go to **"Manage Templates"** → **"➕ Add Template"**
@@ -124,7 +133,12 @@ Navigate to **"Manage Templates"** (left sidebar) to see all 30+ templates organ
 A: The current version applies perspective/audience to the entire conversation. To switch, start a new conversation (click "Clear History").
 
 **Q: Where are my templates saved?**  
-A: In `config/question_templates.json` - you can backup this file!
+A: In `config/question_templates.json` — back this file up, it is the only copy.
+
+**Q: Why does the app start with no templates?**  
+A: `config/default_templates.json` ships empty by design. Templates you add go
+to `question_templates.json`. If you want a set restored by "Reset to Defaults",
+copy your finished templates into `default_templates.json`.
 
 **Q: Can I use this offline?**  
 A: Yes! Everything runs locally. No internet needed after installation.

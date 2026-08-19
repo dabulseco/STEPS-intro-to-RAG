@@ -27,7 +27,7 @@ ollama_app/                              📦 Main project directory
 │
 ├── ⚙️ CONFIG FILES (Template Storage)
 │   └── config/
-│       └── default_templates.json       🎯 30 built-in question templates
+│       └── default_templates.json       🎯 Seed templates for "Reset to Defaults" (empty by default)
 │       # question_templates.json        (Auto-created on first run)
 │
 ├── 🔍 RETRIEVAL ENGINE (rag_core/)      ← No Streamlit; portable to other apps
@@ -135,8 +135,11 @@ markdown>=3.5.0
 
 ### Configuration Files
 
-#### `config/default_templates.json` (30 templates)
-**Purpose**: Default question templates (read-only reference)
+#### `config/default_templates.json` (currently empty)
+**Purpose**: Seed templates copied to the user file on first run, and restored
+by "Reset to Defaults". **Ships empty**, so a fresh install starts with no
+templates and "Reset to Defaults" clears the library rather than repopulating it.
+Put templates here if you want a set that survives a reset.
 **Structure**:
 ```json
 {

@@ -82,29 +82,42 @@ llm_engine = ChatOllama(
 **Symptoms**:
 - Template dropdown is empty
 - "No templates available" message
-- Can't see default templates
 
-**Solutions**:
+**First, check whether this is a bug at all.** The app ships with an **empty**
+template library by design -- `config/default_templates.json` contains
+`{"templates": []}`. On a fresh install an empty dropdown is expected. Add
+templates via **Manage Templates → ➕ Add Template**.
 
-#### Solution A: Delete and Regenerate
 ```bash
-cd ollama_app
-rm config/question_templates.json
-# Restart app - it will auto-create from defaults
-streamlit run app.py
+# How many templates do you actually have?
+python3 -c "import json;print(len(json.load(open('config/question_templates.json'))['templates']))"
 ```
 
-#### Solution B: Check File Permissions
+> ⚠️ **Do not "delete and regenerate", and do not copy the defaults file over
+> your templates.** Older versions of this guide suggested both. Because the
+> defaults file is empty, either one **erases every template you have created
+> and restores nothing**. The same applies to the "🔄 Reset to Defaults" button
+> in Manage Templates → Settings.
+
+**If your templates vanished**, restore from a backup or from git:
+```bash
+git checkout HEAD -- config/question_templates.json
+```
+
+#### Solution A: Check File Permissions
 ```bash
 # Make sure config directory is writable
 chmod -R 755 config/
 ```
 
-#### Solution C: Manually Copy Defaults
+#### Solution B: Give Yourself a Reusable Default Set
+Once you have templates you want to keep, copy them **into** the defaults file
+(this direction is safe -- the reverse is not):
 ```bash
 cd ollama_app/config
-cp default_templates.json question_templates.json
+cp question_templates.json default_templates.json
 ```
+"Reset to Defaults" now restores that set instead of clearing everything.
 
 #### Solution D: Check JSON Syntax
 If you edited the JSON file manually:
@@ -688,12 +701,17 @@ cd ollama_app && streamlit run app.py  # Terminal 2
 # Check status
 curl http://localhost:11434/api/tags   # Ollama running?
 ollama list                            # Models available?
+ollama list | grep embed               # Embedding model present?
 ls -la config/                         # Templates exist?
+python3 -m pytest tests/ -q            # Retrieval engine healthy?
 
-# Reset everything
-rm config/question_templates.json      # Delete user templates
+# Reset app state (does NOT touch your templates)
 streamlit cache clear                  # Clear app cache
-# Restart app
+# Restart app -- the vector store is in-memory and clears on exit anyway
+
+# ⚠️ Deleting config/question_templates.json erases every template you have
+#    created. The defaults file is empty, so nothing is restored. Back it up
+#    first:  cp config/question_templates.json ~/templates-backup.json
 
 # Debug mode
 streamlit run app.py --logger.level debug

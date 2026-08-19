@@ -152,41 +152,56 @@ Check the **"👁️ Preview Document Content"** box to see:
 
 ---
 
-## Document Analysis Templates
+## Question Patterns That Work Well
 
-The app includes **8 specialized templates** for document work:
+> **Note:** the app ships with an empty template library. The patterns below are
+> not pre-installed -- type them directly, or save the ones you use often via
+> **Manage Templates → Add Template** to get them as one-click buttons.
 
-### 1. Summarize Uploaded Document
-**Purpose**: Get comprehensive summary with key findings  
+Each is phrased to give retrieval something concrete to match on, which matters
+more than it did in earlier versions: the search runs against your wording.
+
+### 1. Summarize the document
+> "Summarize the main findings and conclusions of this document."
 **Use when**: You want an overview of the document as a whole
+**Tip**: Broad questions retrieve broadly. Raise "Passages sent to the model"
+in 🎛️ Retrieval Tuning for better coverage.
 
-### 2. Extract Key Points from Document
-**Purpose**: Bullet-point list of main takeaways  
+### 2. Extract key points
+> "List the main takeaways from this document as bullet points."
 **Use when**: You need quick reference points
 
-### 3. Analyze Methodology in Document
-**Purpose**: Deep dive into research methods  
-**Use when**: Evaluating study design and approach
+### 3. Analyze methodology
+> "Describe the methodology used in this study, including sample size, controls and statistical tests."
+**Use when**: Evaluating study design
+**Tip**: Naming the section ("in the methods section") works well with
+**"Infer document/section filter"** enabled.
 
-### 4. Compare Multiple Documents
-**Purpose**: Side-by-side analysis of uploaded papers  
-**Use when**: You uploaded 2+ documents for comparison
+### 4. Compare multiple documents
+> "Compare how each uploaded document approaches X. Note where they disagree."
+**Use when**: You uploaded 2+ documents
+**Tip**: Turn on **"Search multiple phrasings"** -- comparisons need passages
+from every document, not just the closest match.
 
-### 5. Answer Question from Document
-**Purpose**: Specific Q&A about document content  
+### 5. Answer a specific question
+> "What sample size was used, and what was the primary endpoint?"
 **Use when**: You have targeted questions
+**Tip**: This is where retrieval performs best. Include exact terms if you know
+them; the keyword index matches them literally.
 
-### 6. Create Outline from Document
-**Purpose**: Hierarchical structure of document  
+### 6. Create an outline
+> "Outline this document's structure, listing each major section and its purpose."
 **Use when**: You need to understand organization
+**Tip**: 🔍 Inspect Indexed Chunks already shows detected sections.
 
-### 7. Identify Knowledge Gaps
-**Purpose**: Find limitations and future research needs  
+### 7. Identify knowledge gaps
+> "What limitations do the authors acknowledge, and what future work do they propose?"
 **Use when**: Planning follow-up research
 
-### 8. Simplify Technical Document
-**Purpose**: Translate complex content to accessible language  
+### 8. Simplify technical content
+> "Explain this document's core findings in plain language."
 **Use when**: Making technical papers understandable
+**Tip**: Pair with **Audience: Middle School Student** in the sidebar.
 
 ---
 
@@ -197,7 +212,7 @@ The app includes **8 specialized templates** for document work:
 **Literature Review:**
 ```
 1. Upload 5-10 related papers
-2. Use "Compare Multiple Documents" template
+2. Ask a comparison question (see "Question Patterns" above)
 3. Get synthesis of findings and methodologies
 ```
 

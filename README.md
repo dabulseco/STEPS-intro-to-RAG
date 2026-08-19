@@ -21,9 +21,8 @@ A comprehensive Streamlit application for interacting with local Large Language 
 - **Upload PDF, DOCX, and PPTX files**: Extract text from research papers, reports, documents, and presentations
 - **Multiple file support**: Upload and analyze multiple documents simultaneously
 - **200 MB per file limit**: Support for large documents and presentation files
-- **8 Document Analysis Templates**: Specialized templates for summarizing, comparing, and analyzing uploaded documents (REMOVED)
-- **Automatic integration**: Document content automatically included in your queries
-- **Preview capability**: View extracted text before querying
+- **Automatic retrieval**: Relevant passages are found and cited for every question
+- **Preview capability**: View extracted text and inspect indexed chunks before querying
 
 ### 🎭 Context-Aware Responses
 - **Perspective Setting**: Choose who's writing the response (Scientist, High School Teacher, Lay Person)
@@ -31,13 +30,23 @@ A comprehensive Streamlit application for interacting with local Large Language 
 - Settings apply to entire conversation for consistent communication style
 
 ### 📋 Question Template System
-- **30+ Pre-built Templates**: Comprehensive library of scientific and educational question templates
+- **Build your own library**: Save questions you ask repeatedly and reuse them in one click
 - **Organized by Category**: Research, Teaching, Laboratory, Statistics, Critical Thinking, and more
 - **Two Usage Modes**:
   - **Form Mode**: Structured input with dedicated fields for complex queries
   - **Chat Mode**: Quick template insertion into chat input
-- **Template Management**: Full CRUD operations - Create, View, Delete custom templates
+- **Template Management**: Full CRUD operations - Create, View, Delete templates
 - **Persistent Storage**: Templates stored in JSON format for easy backup and sharing
+
+> **The app ships with no pre-built templates.** `config/default_templates.json`
+> is intentionally empty, so a fresh install starts with an empty library and you
+> add your own from **Manage Templates → Add Template**.
+>
+> ⚠️ Because the defaults file is empty, **"Reset to Defaults" deletes every
+> template you have created and restores nothing.** Back up
+> `config/question_templates.json` before using it. To make it useful, copy your
+> templates into `config/default_templates.json` — that file is what "reset"
+> restores from.
 
 ### 💡 Suggested Follow-up Questions
 - **Automatic generation**: After every AI response, the app generates 3 contextually relevant follow-up questions
@@ -71,7 +80,7 @@ ollama_app/
 ├── README.md                       # This file
 ├── ADVANCED_RAG_PLAN.md            # Design and rationale for the retrieval engine
 ├── config/
-│   ├── default_templates.json      # Default question templates (30+ templates)
+│   ├── default_templates.json      # Seed templates restored by "Reset to Defaults" (empty by default)
 │   └── question_templates.json     # User's custom templates (auto-created)
 ├── rag_core/                       # Retrieval engine -- no Streamlit, no persistence assumptions
 │   ├── config.py                   # Tunable constants

@@ -369,9 +369,11 @@ as history grew. In the system prompt they stay in force for the whole exchange.
 - ✅ "According to this paper..."
 - ✅ "Is X mentioned in the document?"
 
-### 3. Use Document Analysis Templates
-- Pre-written to enforce document focus
-- Already optimized for RAG responses
+### 3. Save Your Best Questions as Templates
+- The template library starts empty; you build it from questions that work
+- Add via **Manage Templates → Add Template**
+- Templates go through the same retrieval path as typed questions
+- See "Question Patterns That Work Well" in `DOCUMENT_UPLOAD_GUIDE.md`
 
 ### 4. Preview Extracted Content
 - Enable "Preview Document Content"

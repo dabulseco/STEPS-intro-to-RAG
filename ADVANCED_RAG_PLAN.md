@@ -48,7 +48,7 @@ is a one-line change with no other edits.
 The broken surface is small and well-isolated. Of ~2,000 lines, only ~12% changes: the answer path
 in `app.py` (~150 of 890 lines — `generate_ai_response` plus the two duplicated mode blocks),
 `document_processor`'s output shape (~60 lines), and a small `prompt_builder` fix. Everything
-expensive to recreate — the 30+ curated templates, the perspective/audience matrix, DOCX table
+expensive to recreate — the template system, the perspective/audience matrix, DOCX table
 extraction, PPTX text-frame walking, the Bootstrap HTML exporter — is retrieval-agnostic and stays.
 
 A full rewrite was considered and rejected: it would require re-deriving or copying all of that
