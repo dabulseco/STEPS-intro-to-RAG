@@ -47,6 +47,8 @@ chroma/
 chroma_db/
 *.chroma
 vectorstore/
+# Persistent library app: user documents, never commit
+libraries/
 
 # =============================================================================
 # Superseded documentation
