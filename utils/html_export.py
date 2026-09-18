@@ -246,7 +246,7 @@ def _render_rich_html(text: str) -> str:
 # -----------------------------
 def build_pair_html(index: int, user_text: str, ai_text: str, 
                    created_at: str = None, perspective: str = None, 
-                   audience: str = None) -> str:
+                   audience: str = None, evaluation_html: str = "") -> str:
     """
     Single Q&A as a standalone HTML document.
     
@@ -257,6 +257,8 @@ def build_pair_html(index: int, user_text: str, ai_text: str,
         created_at: Timestamp (optional)
         perspective: Who wrote the answer (optional)
         audience: Intended audience (optional)
+        evaluation_html: Pre-rendered evaluation card, appended after the
+            answer (optional; "" when the answer was never evaluated)
         
     Returns:
         Complete HTML document string
@@ -304,6 +306,7 @@ def build_pair_html(index: int, user_text: str, ai_text: str,
       <div class="card-text">{ai_html}</div>
     </div>
   </article>
+{evaluation_html}
 </div>
 {_bootstrap_foot()}
 """
@@ -311,7 +314,8 @@ def build_pair_html(index: int, user_text: str, ai_text: str,
 
 
 def build_conversation_html(history: list, title: str = "Conversation Transcript",
-                           perspective: str = None, audience: str = None) -> str:
+                           perspective: str = None, audience: str = None,
+                           evaluation_html: list = None) -> str:
     """
     Full conversation HTML document.
     
@@ -320,10 +324,13 @@ def build_conversation_html(history: list, title: str = "Conversation Transcript
         title: Document title
         perspective: Who wrote the answers (optional)
         audience: Intended audience (optional)
+        evaluation_html: Pre-rendered evaluation cards, parallel to
+            `history`; "" entries mean that Q&A was not evaluated (optional)
         
     Returns:
         Complete HTML document string
     """
+    evaluation_html = evaluation_html or []
     created_at = datetime.datetime.now().isoformat()
     
     # Add context info if available
@@ -338,6 +345,7 @@ def build_conversation_html(history: list, title: str = "Conversation Transcript
     
     cards = []
     for i, (q, a) in enumerate(history):
+        eval_card = evaluation_html[i] if i < len(evaluation_html) else ""
         cards.append(f"""
   <section id="qa-{i}" class="mb-4">
     <div class="card chat-card shadow-sm">
@@ -358,6 +366,7 @@ def build_conversation_html(history: list, title: str = "Conversation Transcript
         <div class="card-text">{_render_rich_html(a)}</div>
       </div>
     </div>
+{eval_card}
   </section>
 """)
 
@@ -372,7 +381,9 @@ def build_conversation_html(history: list, title: str = "Conversation Transcript
 
   <nav class="mb-4">
     <div class="list-group">
-      {"".join([f'<a class="list-group-item list-group-item-action" href="#qa-{i}">Q&A #{i+1}</a>' for i in range(len(history))])}
+      {"".join([f'<a class="list-group-item list-group-item-action" href="#qa-{i}">Q&A #{i+1}'
+                + (' <span class="badge text-bg-warning ms-1">evaluated</span>' if i < len(evaluation_html) and evaluation_html[i] else '')
+                + '</a>' for i in range(len(history))])}
     </div>
   </nav>
 

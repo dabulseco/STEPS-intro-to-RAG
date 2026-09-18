@@ -23,6 +23,13 @@ from utils.template_manager import TemplateManager
 from utils.prompt_builder import PromptBuilder
 from utils.html_export import build_pair_html, build_conversation_html, safe_filename
 from utils.document_processor import DocumentProcessor
+from utils.eval_render import (
+    render_evaluation_report,
+    evaluations_to_csv,
+    evaluations_to_markdown,
+    render_evaluations_html,
+    render_pair_evaluations_html,
+)
 
 # Retrieval engine (storage- and UI-agnostic; see ADVANCED_RAG_PLAN.md)
 from rag_core.chunker import chunk_documents
@@ -50,6 +57,13 @@ from rag_core.pipeline import RetrievalSettings, answer as rag_answer, resolve_m
 from rag_core.query_transformer import QueryTransformer
 from rag_core.reranker import build_reranker
 from rag_core.store import EphemeralRagStore
+from rag_core.eval import (
+    EvaluationReport,
+    JudgeCallError,
+    MetricResult,
+    evaluate_answer,
+    make_eval_key,
+)
 
 # -----------------------------
 # Page Configuration
@@ -228,6 +242,23 @@ if "answer_diagnostics" not in st.session_state:
 
 if "answer_citations" not in st.session_state:
     st.session_state.answer_citations = {}  # Dict: chat_history index -> CitationReport
+
+# -----------------------------
+# Evaluator session state
+# -----------------------------
+# The user picks a judge model in the sidebar (no default); evaluations are
+# keyed by make_eval_key(question, answer, judge_model), so changing the
+# judge model produces a fresh evaluation rather than overwriting the
+# previous one. All evaluations live in session state only -- nothing is
+# written to disk.
+if "judge_model" not in st.session_state:
+    st.session_state.judge_model = None
+
+if "eval_enabled" not in st.session_state:
+    st.session_state.eval_enabled = True  # Show the per-answer evaluation expander
+
+if "evaluations" not in st.session_state:
+    st.session_state.evaluations = {}  # Dict: eval_key -> EvaluationReport
 
 # -----------------------------
 # Vector Store (ephemeral)
@@ -591,6 +622,112 @@ num_ctx = st.sidebar.slider(
          "derived from this value, so raising it lets more evidence reach the model. "
          "Values beyond what your model was trained for will be ignored by Ollama."
 )
+
+# -----------------------------
+# Sidebar: Evaluator (LLM-as-judge)
+# -----------------------------
+# Five notebook-style metrics (groundedness, relevance, faithfulness,
+# context precision, context recall) scored by a separate Ollama chat model
+# that the user picks here. No fixed default: the dropdown is index=None
+# so the user is forced to make a choice before any evaluation runs.
+st.sidebar.markdown("---")
+st.sidebar.title("🧪 Evaluator")
+st.sidebar.caption(
+    "Rate each answer with five LLM-as-judge metrics. Pick a different "
+    "judge model than your answer model to avoid self-evaluation bias."
+)
+
+chat_models_for_eval = get_local_models()
+if not chat_models_for_eval:
+    st.sidebar.warning("No chat models available — evaluation disabled.")
+    st.session_state.judge_model = None
+else:
+    # The current value must be in the option list for Streamlit to render the
+    # selectbox without erroring on the previous selection. If the stored value
+    # is None or no longer available, fall back to no selection.
+    previous = st.session_state.judge_model
+    if previous not in chat_models_for_eval:
+        previous = None
+
+    selected_judge = st.sidebar.selectbox(
+        "Judge model",
+        chat_models_for_eval,
+        index=chat_models_for_eval.index(previous) if previous else None,
+        placeholder="Pick a model…",
+        key="judge_model_selectbox",
+        help="The model that scores your answers. Pick a different one than "
+             "your answer model to avoid self-evaluation bias.",
+        on_change=lambda: setattr(
+            st.session_state, "judge_model", st.session_state.judge_model_selectbox
+        ),
+    )
+    st.session_state.judge_model = selected_judge or None
+
+    if not st.session_state.judge_model:
+        st.sidebar.info("Select a judge model to enable 'Run evaluation' buttons.")
+    elif st.session_state.judge_model == selected_model:
+        st.sidebar.caption(
+            "⚠️ Same as answer model — self-evaluation bias is more likely. "
+            "Consider picking a different judge for fairer scores."
+        )
+
+st.session_state.eval_enabled = st.sidebar.checkbox(
+    "Show evaluation panel under each answer",
+    value=st.session_state.eval_enabled,
+    help="When on, every answer gets a collapsed '🔬 Evaluate this answer' expander.",
+    key="eval_enabled_checkbox",
+)
+
+# -----------------------------
+# Sidebar: Export Evaluations
+# -----------------------------
+# Three download buttons -- HTML, Markdown, CSV -- all operating off the
+# current session-state evaluations dict. Session-only: nothing persisted
+# to disk, so these buttons must be clicked before the app restarts.
+with st.sidebar.expander("📤 Export evaluations", expanded=False):
+    st.caption(
+        "Evaluations are cleared when this app restarts. "
+        "Export before closing if you want to keep them."
+    )
+    if not st.session_state.evaluations:
+        st.info("No evaluations yet. Click 'Run evaluation' under an answer first.")
+    else:
+        n_evals = len(st.session_state.evaluations)
+        st.caption(f"{n_evals} evaluation{'s' if n_evals != 1 else ''} cached this session.")
+
+        st.download_button(
+            "⬇️ CSV (long-form, full text)",
+            data=evaluations_to_csv(
+                st.session_state.evaluations,
+                history=st.session_state.chat_history,
+            ),
+            file_name="evaluations.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="export_csv",
+        )
+        st.download_button(
+            "⬇️ Markdown",
+            data=evaluations_to_markdown(
+                st.session_state.evaluations,
+                history=st.session_state.chat_history,
+            ),
+            file_name="evaluations.md",
+            mime="text/markdown",
+            use_container_width=True,
+            key="export_md",
+        )
+        st.download_button(
+            "⬇️ HTML",
+            data=render_evaluations_html(
+                st.session_state.evaluations,
+                history=st.session_state.chat_history,
+            ),
+            file_name="evaluations.html",
+            mime="text/html",
+            use_container_width=True,
+            key="export_html",
+        )
 
 # -----------------------------
 # Sidebar: Embedding Model (retrieval)
@@ -1123,12 +1260,17 @@ if page == "Chat":
     st.header("💬 Conversation History")
     
     if st.session_state.chat_history:
-        # Full conversation export button
+        # Full conversation export button. Any evaluations run on an answer
+        # (by any judge model) are embedded under that answer.
         full_html = build_conversation_html(
             st.session_state.chat_history,
             title="Conversation Transcript",
             perspective=st.session_state.perspective,
-            audience=st.session_state.audience
+            audience=st.session_state.audience,
+            evaluation_html=[
+                render_pair_evaluations_html(st.session_state.evaluations, q, a)
+                for q, a in st.session_state.chat_history
+            ],
         )
         
         col1, col2 = st.columns([3, 1])
@@ -1221,6 +1363,80 @@ if page == "Chat":
                     for note in diagnostics.notes:
                         st.info(note)
 
+            # LLM-as-judge evaluation (notebook-style five metrics).
+            # Collapsed by default; user clicks "Run evaluation" to pay the
+            # cost. Cached by (question, answer, judge_model) so re-renders
+            # are free and switching judge models produces a fresh entry.
+            if st.session_state.eval_enabled:
+                eval_key = make_eval_key(query, response, st.session_state.judge_model or "")
+                cached = st.session_state.evaluations.get(eval_key)
+
+                with st.expander("🔬 Evaluate this answer", expanded=False):
+                    if not st.session_state.judge_model:
+                        st.warning("Pick a judge model in the sidebar to enable evaluation.")
+                    else:
+                        # Use the assembled context if RAG was used; fall back
+                        # to the empty string when the answer came from LLM-only
+                        # mode (no retrieved evidence to judge against).
+                        ctx_text = ""
+                        src_list: List = []
+                        diag = st.session_state.answer_diagnostics.get(i)
+                        if diag is not None and hasattr(diag, "context"):
+                            pass  # context not on Diagnostics; we re-pull below
+                        # Pull context from sources: each Source carries the
+                        # chunk text that was actually fed to the model.
+                        src_list = st.session_state.answer_sources.get(i, [])
+                        if src_list:
+                            ctx_text = "\n\n---\n\n".join(
+                                f"[{s.marker}] {s.text}" for s in src_list
+                            )
+
+                        if cached is not None:
+                            # Cache hit -- render the saved report. Cheaper than
+                            # re-running five judge calls on every re-render.
+                            st.caption(f"Cached evaluation · judge: `{cached.judge_model}` · "
+                                       f"{cached.elapsed_seconds:.1f}s")
+                            render_evaluation_report(cached)
+
+                        run_label = (
+                            "🔁 Re-run evaluation"
+                            if cached is not None
+                            else "▶️ Run evaluation"
+                        )
+                        if st.button(run_label, key=f"run_eval_{i}"):
+                            eval_completed = False
+                            progress = st.progress(0.0, text="Starting evaluation…")
+                            status = st.status("Running five-metric evaluation…", expanded=True)
+                            try:
+                                def _on_metric(name: str, done: int, total: int):
+                                    status.update(label=f"[{done}/{total}] {name}")
+                                    progress.progress(done / total, text=f"[{done}/{total}] {name}")
+
+                                report = evaluate_answer(
+                                    question=query,
+                                    answer=response,
+                                    context_text=ctx_text,
+                                    sources=src_list,
+                                    judge_model=st.session_state.judge_model,
+                                    progress_callback=_on_metric,
+                                )
+                                st.session_state.evaluations[eval_key] = report
+                                status.update(label="Evaluation complete", state="complete")
+                                render_evaluation_report(report)
+                                eval_completed = True
+                            except JudgeCallError as exc:
+                                status.update(label="Evaluation failed", state="error")
+                                st.error(f"Judge call failed: {exc}")
+                            except Exception as exc:  # noqa: BLE001 -- UI boundary
+                                status.update(label="Evaluation failed", state="error")
+                                st.error(f"Unexpected error: {exc}")
+                            finally:
+                                progress.empty()
+                            # The full-conversation download above was built
+                            # before this report existed; rerun so it includes it.
+                            if eval_completed:
+                                st.rerun()
+
             # Suggested follow-up questions
             followups = st.session_state.followup_questions.get(i, [])
             if followups:
@@ -1234,7 +1450,10 @@ if page == "Chat":
             pair_html = build_pair_html(
                 i, query, response,
                 perspective=st.session_state.perspective,
-                audience=st.session_state.audience
+                audience=st.session_state.audience,
+                evaluation_html=render_pair_evaluations_html(
+                    st.session_state.evaluations, query, response
+                ),
             )
             st.download_button(
                 label=f"⬇️ Download Q&A #{i+1} (HTML)",
