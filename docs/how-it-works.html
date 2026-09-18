@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How It Works · Local LLM Scientific Assistant</title>
+<meta name="description" content="The six stages between a question and an answer, explained for educators: chunking, indexing, query interpretation, hybrid search, selection, and generation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="siteNav"></div>
+
+<header class="hero">
+  <div class="container">
+    <span class="badge-soft badge-sem mb-3 d-inline-block">Concepts</span>
+    <h1>How It Works</h1>
+    <p class="lead mt-3">
+      Six stages sit between your question and the answer. Each one can be adjusted, and
+      each has a failure mode worth recognising.
+    </p>
+  </div>
+</header>
+
+<div class="container my-5">
+<div class="row g-5">
+<main class="col-lg-9" id="main">
+
+  <h2 id="stage-1">Stage 1 — Splitting documents into passages</h2>
+  <p>
+    A language model can only consider a limited amount of text at once. A 200-page manual
+    will not fit, so documents are cut into <strong>chunks</strong>: passages of roughly
+    400 words.
+  </p>
+  <p>
+    How you cut matters. Split carelessly and a sentence is severed mid-clause, leaving
+    two fragments that mean less than the whole. This application cuts at paragraph
+    boundaries where possible and <em>never</em> allows a chunk to span two pages — which
+    is what makes it possible to say an answer came from page 14 and mean it.
+  </p>
+
+  <div class="callout callout-teach">
+    <span class="callout-title">The idea underneath</span>
+    <p>
+      Two sizes are kept for every passage. A <strong>small</strong> version is used for
+      searching, because a short passage is about one thing and therefore matches
+      precisely. A <strong>larger</strong> surrounding version is what the model actually
+      reads, so it sees the full argument rather than a fragment. Search small, read big.
+    </p>
+  </div>
+
+  <h2 id="stage-2">Stage 2 — Indexing, twice</h2>
+  <p>
+    Each passage is then stored in two separate indexes. This is the single most important
+    design decision in the system, and the one most worth explaining.
+  </p>
+
+  <div class="row g-3 my-4">
+    <div class="col-md-6">
+      <div class="card h-100 border-0" style="background:var(--sem-soft)">
+        <div class="card-body">
+          <span class="badge-soft badge-sem">Index 1 · Semantic</span>
+          <h3 class="mt-2" style="font-size:1.05rem">Search by meaning</h3>
+          <p style="font-size:0.94rem">
+            Each passage is converted into a list of numbers — an <strong>embedding</strong> —
+            that represents its meaning. Passages about similar ideas end up with similar
+            numbers, even when they share no words.
+          </p>
+          <p class="mb-0" style="font-size:0.94rem">
+            <strong>Finds:</strong> "how warm were the cells kept" → "cultured at 37&nbsp;°C"<br>
+            <strong>Misses:</strong> catalogue number <code>ZZQX7-4419</code>, which means nothing
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100 border-0" style="background:var(--key-soft)">
+        <div class="card-body">
+          <span class="badge-soft badge-key">Index 2 · Keyword</span>
+          <h3 class="mt-2" style="font-size:1.05rem">Search by exact wording</h3>
+          <p style="font-size:0.94rem">
+            A traditional word index, the same principle a library catalogue uses. It
+            counts which passages contain your terms and how unusual those terms are.
+          </p>
+          <p class="mb-0" style="font-size:0.94rem">
+            <strong>Finds:</strong> <code>ZZQX7-4419</code>, <code>CFTR-KO</code>, "Title IX"<br>
+            <strong>Misses:</strong> a paraphrase sharing none of your words
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p>
+    Each index fails exactly where the other succeeds. Running both and combining them is
+    called <strong>hybrid search</strong>, and it is why this application handles both
+    "explain the general argument" and "find part number 4419" without you having to
+    choose in advance.
+  </p>
+
+  <h2 id="stage-3">Stage 3 — Interpreting your question</h2>
+  <p>
+    The words you type are aimed at a human reader, not at a search index. Consider a
+    perfectly ordinary follow-up question:
+  </p>
+  <blockquote class="border-start ps-3 my-3" style="border-color:var(--rule)!important">
+    <p class="mb-0"><em>"How does that compare to the control?"</em></p>
+  </blockquote>
+  <p>
+    Searched literally, this is nearly useless. The subject lives in the previous exchange;
+    what remains is grammar. The application therefore rewrites it into a standalone
+    question — <em>"How does the 38&nbsp;nA/cm² chloride transport in the CFTR-KO line
+    compare to the wildtype control?"</em> — before any searching happens.
+  </p>
+  <p>
+    This is on by default. Several further rewriting strategies are available and off by
+    default; see <a href="techniques.html">Advanced Techniques</a>.
+  </p>
+
+  <h2 id="stage-4">Stage 4 — Searching and merging</h2>
+  <p>
+    Both indexes are searched. Each returns its own ranked list, and the two lists must be
+    combined into one. The difficulty is that their scores are not comparable — a
+    similarity score and a keyword score are different kinds of number on different scales.
+  </p>
+  <p>
+    The solution is to ignore the scores and use only the <strong>positions</strong>. A
+    passage ranked first by either method scores well; a passage ranked first by
+    <em>both</em> scores best of all. This is called Reciprocal Rank Fusion, and its
+    advantage is that it needs no tuning for your particular documents.
+  </p>
+
+  <div class="callout callout-tip">
+    <span class="callout-title">What you can adjust</span>
+    <p>
+      The <strong>Semantic ↔ Keyword balance</strong> slider weights the two sides. Move it
+      toward keyword when exact terms matter, toward semantic for conceptual questions.
+      Fifty-fifty is a good default and rarely a bad one.
+    </p>
+  </div>
+
+  <h2 id="stage-5">Stage 5 — Selecting what fits</h2>
+  <p>
+    Retrieval deliberately returns more passages than needed — around twenty candidates —
+    because it is better to over-collect and then filter. Two steps narrow them down.
+  </p>
+  <p>
+    <strong>Re-ranking</strong> (optional) takes the survivors and scores each one against
+    your question directly, keeping the best five. Retrieval optimises for finding
+    everything relevant; re-ranking optimises for putting the best thing first. They want
+    different things, which is why doing both beats doing either harder.
+  </p>
+  <p>
+    <strong>Budgeting</strong> then fits the chosen passages into the space the model has,
+    measured from the Context Length setting. If something does not fit, the application
+    reports it in the diagnostics panel rather than dropping it silently.
+  </p>
+
+  <div class="callout callout-warn">
+    <span class="callout-title">The failure this prevents</span>
+    <p>
+      Systems that paste entire documents into the prompt hit the model's limit and have
+      the excess silently discarded. No error appears. The model answers from whatever
+      fragment survived and sounds equally confident either way. If you evaluate another
+      RAG tool, ask what it does when a document exceeds the context window — the answer
+      tells you a great deal.
+    </p>
+  </div>
+
+  <h2 id="stage-6">Stage 6 — Answering, with sources</h2>
+  <p>
+    The selected passages are numbered <code>[S1]</code>, <code>[S2]</code> and given to
+    the model with instructions to cite them. The answer arrives with those markers inline,
+    and the <strong>Sources</strong> panel beneath it shows each passage in full, with its
+    file, page and section.
+  </p>
+  <p>
+    The citations are then <em>checked</em>. Every marker is verified against the passages
+    actually supplied; if the model invents a reference to <code>[S7]</code> when only five
+    passages were provided, a warning appears above the answer. Asking a model to cite its
+    sources is easy — verifying that it did is what makes the citation worth anything.
+  </p>
+
+  <h2 id="reading-diagnostics">Reading the diagnostics panel</h2>
+  <p>
+    Every answer carries an expandable <strong>Retrieval Diagnostics</strong> panel. It
+    exists to answer one question: when an answer is disappointing, was the problem finding
+    the information or writing about it?
+  </p>
+
+  <div class="table-wrap">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Reading</th><th>Interpretation</th><th>What to do</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sources used: 0</td>
+          <td>Nothing was found. The model never had a chance.</td>
+          <td>Rephrase, adjust the balance slider, or check the document indexed correctly</td>
+        </tr>
+        <tr>
+          <td>Semantic hits high, keyword 0</td>
+          <td>Your terms do not appear literally in the documents</td>
+          <td>Normal for paraphrased questions; nothing to fix</td>
+        </tr>
+        <tr>
+          <td>Passages dropped for budget</td>
+          <td>More was found than would fit in the context window</td>
+          <td>Raise Context Length</td>
+        </tr>
+        <tr>
+          <td>Sources look right, answer is poor</td>
+          <td>Retrieval worked; generation did not</td>
+          <td>Lower Temperature, or use a larger chat model</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-teach">
+    <span class="callout-title">A classroom exercise</span>
+    <p>
+      Ask a question whose answer is genuinely absent from the uploaded documents, in
+      strict mode. The system should decline. Then enable <em>Allow LLM General
+      Knowledge</em> and ask again — now it will answer from training data. Putting those
+      two responses side by side makes the distinction between grounded and ungrounded
+      output concrete in a way that explaining it rarely does.
+    </p>
+  </div>
+
+</main>
+
+<aside class="col-lg-3 d-none d-lg-block">
+  <nav class="toc" aria-label="On this page">
+    <p class="control-meta mb-2"><strong>ON THIS PAGE</strong></p>
+    <div class="nav flex-column" id="tocList"></div>
+  </nav>
+</aside>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1">Local LLM Scientific Assistant — documentation for faculty.</p>
+    <p class="mb-0">Runs entirely offline via Ollama. No data leaves your computer.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

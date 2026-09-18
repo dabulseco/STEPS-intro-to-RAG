@@ -1,0 +1,369 @@
+/* ==========================================================================
+   Local LLM Scientific Assistant — documentation site
+   A thin layer over Bootstrap 5. Colors carry meaning rather than decoration:
+   indigo = semantic/vector retrieval, amber = keyword/BM25 retrieval.
+   ========================================================================== */
+
+:root {
+  /* Retrieval identity colors — used only where they mean these things */
+  --sem: #4b5bd7;
+  --sem-soft: #eceefb;
+  --key: #a76a10;
+  --key-soft: #fbf1de;
+
+  /* Cost signalling */
+  --free: #1f7a5a;
+  --free-soft: #e4f4ee;
+  --costly: #b3341f;
+  --costly-soft: #fbe9e6;
+
+  --ink: #171a24;
+  --ink-soft: #4b5162;
+  --ink-faint: #767d90;
+  --paper: #f7f8fb;
+  --surface: #ffffff;
+  --rule: #dfe2ec;
+
+  --bs-body-font-family: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+[data-bs-theme="dark"] {
+  --sem: #97a2f7;
+  --sem-soft: #232946;
+  --key: #e0a951;
+  --key-soft: #362a15;
+  --free: #52c39a;
+  --free-soft: #16302a;
+  --costly: #f0806a;
+  --costly-soft: #351d1a;
+
+  --ink: #e9ebf3;
+  --ink-soft: #b2b8c9;
+  --ink-faint: #848b9f;
+  --paper: #10121a;
+  --surface: #181b26;
+  --rule: #2b3044;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+
+h1, h2, h3, h4 {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+h1 { font-weight: 700; }
+h2 { font-weight: 700; margin-top: 2.75rem; }
+h3 { font-weight: 600; font-size: 1.25rem; margin-top: 1.75rem; }
+
+p, li { color: var(--ink-soft); }
+.lead { color: var(--ink-soft); }
+
+code, kbd, .mono {
+  font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+code {
+  font-size: 0.86em;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.08em 0.36em;
+  color: var(--ink);
+}
+[data-bs-theme="dark"] code { background: #12141d; }
+
+/* -------------------------------------------------------------------------
+   Navigation
+   ------------------------------------------------------------------------- */
+.site-nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+}
+.site-nav .navbar-brand {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.site-nav .nav-link { color: var(--ink-soft); font-weight: 500; }
+.site-nav .nav-link:hover { color: var(--sem); }
+.site-nav .nav-link.active {
+  color: var(--sem);
+  border-bottom: 2px solid var(--sem);
+}
+
+/* On-page contents rail */
+.toc {
+  position: sticky;
+  top: 5rem;
+  max-height: calc(100vh - 7rem);
+  overflow-y: auto;
+  border-left: 1px solid var(--rule);
+  padding-left: 1rem;
+}
+.toc .nav-link {
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+  color: var(--ink-faint);
+  border-left: 2px solid transparent;
+  margin-left: -1rem;
+  padding-left: 1rem;
+}
+.toc .nav-link:hover { color: var(--sem); }
+.toc .nav-link.active {
+  color: var(--sem);
+  border-left-color: var(--sem);
+  font-weight: 600;
+}
+.toc .toc-sub { padding-left: 0.85rem; font-size: 0.85rem; }
+
+/* -------------------------------------------------------------------------
+   Hero
+   ------------------------------------------------------------------------- */
+.hero {
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  padding: 4rem 0 3rem;
+}
+.hero h1 { font-size: clamp(2rem, 5vw, 3.1rem); max-width: 20ch; }
+.hero .lead { max-width: 60ch; font-size: 1.2rem; }
+
+/* -------------------------------------------------------------------------
+   Cards
+   ------------------------------------------------------------------------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--rule);
+  font-weight: 600;
+}
+
+/* Control reference card */
+.control-card { scroll-margin-top: 5.5rem; }
+.control-card .control-name {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--ink);
+}
+.control-meta {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+}
+.control-meta strong { color: var(--ink-soft); font-weight: 600; }
+
+/* Effect grid: what happens when you turn it up / down */
+.effect {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 0.9rem;
+  font-size: 0.94rem;
+  margin: 0;
+}
+.effect dt {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+  white-space: nowrap;
+}
+.effect dd { margin: 0; color: var(--ink-soft); }
+
+/* -------------------------------------------------------------------------
+   Badges — semantics, not decoration
+   ------------------------------------------------------------------------- */
+.badge-sem    { background: var(--sem-soft);    color: var(--sem); }
+.badge-key    { background: var(--key-soft);    color: var(--key); }
+.badge-free   { background: var(--free-soft);   color: var(--free); }
+.badge-costly { background: var(--costly-soft); color: var(--costly); }
+.badge-plain  { background: var(--paper);       color: var(--ink-soft); border: 1px solid var(--rule); }
+.badge-soft {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.3em 0.6em;
+  border-radius: 999px;
+}
+
+/* -------------------------------------------------------------------------
+   Tables
+   ------------------------------------------------------------------------- */
+.table {
+  --bs-table-bg: transparent;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+.table thead th {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+  border-bottom-color: var(--rule);
+}
+.table td, .table th { border-color: var(--rule); }
+.table td.num, .table th.num { text-align: right; font-family: "IBM Plex Mono", monospace; }
+.table-wrap { overflow-x: auto; }
+
+/* -------------------------------------------------------------------------
+   Callouts
+   ------------------------------------------------------------------------- */
+.callout {
+  border-left: 4px solid var(--rule);
+  background: var(--surface);
+  border-radius: 0 8px 8px 0;
+  padding: 1rem 1.15rem;
+  margin: 1.5rem 0;
+}
+.callout p:last-child { margin-bottom: 0; }
+.callout-title {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  display: block;
+}
+.callout-teach   { border-left-color: var(--sem); }
+.callout-teach   .callout-title { color: var(--sem); }
+.callout-warn    { border-left-color: var(--costly); }
+.callout-warn    .callout-title { color: var(--costly); }
+.callout-tip     { border-left-color: var(--free); }
+.callout-tip     .callout-title { color: var(--free); }
+
+/* -------------------------------------------------------------------------
+   Pipeline diagram
+   ------------------------------------------------------------------------- */
+.pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: stretch;
+  margin: 1.5rem 0;
+}
+.pipe-step {
+  flex: 1 1 8.5rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 0.8rem 0.9rem;
+  position: relative;
+}
+.pipe-step .pipe-n {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.1em;
+}
+.pipe-step .pipe-name {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: 0.95rem;
+  margin: 0.15rem 0 0.25rem;
+}
+.pipe-step .pipe-desc { font-size: 0.83rem; color: var(--ink-faint); margin: 0; }
+
+/* -------------------------------------------------------------------------
+   Filter bar (techniques + controls pages)
+   ------------------------------------------------------------------------- */
+.filter-bar {
+  position: sticky;
+  top: 4.1rem;
+  z-index: 5;
+  background: var(--paper);
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 1.5rem;
+}
+.filter-btn {
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-soft);
+  padding: 0.3rem 0.85rem;
+}
+.filter-btn:hover { border-color: var(--sem); color: var(--sem); }
+.filter-btn.active {
+  background: var(--sem);
+  border-color: var(--sem);
+  color: #fff;
+}
+[data-bs-theme="dark"] .filter-btn.active { color: #10121a; }
+
+.is-hidden { display: none !important; }
+
+#noResults { color: var(--ink-faint); }
+
+/* -------------------------------------------------------------------------
+   Preset cards (settings page)
+   ------------------------------------------------------------------------- */
+.preset .preset-values {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+.preset .preset-values dt { color: var(--ink-faint); font-weight: 400; }
+
+/* -------------------------------------------------------------------------
+   Footer
+   ------------------------------------------------------------------------- */
+.site-footer {
+  border-top: 1px solid var(--rule);
+  background: var(--surface);
+  margin-top: 4rem;
+  padding: 2rem 0;
+  color: var(--ink-faint);
+  font-size: 0.9rem;
+}
+
+/* -------------------------------------------------------------------------
+   Accessibility & motion
+   ------------------------------------------------------------------------- */
+a { color: var(--sem); }
+a:hover { color: var(--sem); }
+:focus-visible {
+  outline: 2px solid var(--sem);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: 0.5rem;
+  background: var(--sem);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  z-index: 1000;
+}
+.skip-link:focus { left: 0.5rem; color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+@media print {
+  .site-nav, .toc, .filter-bar, .site-footer { display: none !important; }
+  .card { break-inside: avoid; }
+}

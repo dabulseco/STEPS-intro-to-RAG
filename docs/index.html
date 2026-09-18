@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview · Local LLM Scientific Assistant</title>
+<meta name="description" content="A guide to retrieval-augmented generation for faculty: what this local AI document assistant does, and what every setting actually controls.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="siteNav"></div>
+
+<header class="hero">
+  <div class="container">
+    <span class="badge-soft badge-sem mb-3 d-inline-block">Documentation for educators</span>
+    <h1>Understanding what happens between your question and the answer</h1>
+    <p class="lead mt-3">
+      This is a local AI assistant that answers questions about documents you upload.
+      Nothing leaves your computer. These pages explain what every control does, why it
+      exists, and how changing it changes the answers you get.
+    </p>
+    <div class="d-flex flex-wrap gap-2 mt-4">
+      <a href="how-it-works.html" class="btn btn-primary">Start with how it works</a>
+      <a href="controls.html" class="btn filter-btn">Jump to the control reference</a>
+    </div>
+  </div>
+</header>
+
+<div class="container my-5">
+<div class="row g-5">
+<main class="col-lg-9" id="main">
+
+  <h2 id="what-is-this">What this application is</h2>
+  <p>
+    It is a chat interface to a large language model that runs entirely on your own
+    machine, with one significant addition: you can upload PDFs, Word documents and
+    PowerPoint files, and ask questions that are answered <em>from those documents</em>
+    rather than from whatever the model happens to remember.
+  </p>
+  <p>
+    That addition is called <strong>retrieval-augmented generation</strong>, usually
+    shortened to RAG. Understanding what it does — and, just as importantly, what it does
+    not do — is the difference between trusting an answer and being misled by one.
+  </p>
+
+  <div class="callout callout-teach">
+    <span class="callout-title">Why this matters for teaching</span>
+    <p>
+      Students increasingly treat AI answers as authoritative. The most useful thing you
+      can show them is <em>where an answer came from</em>. This application makes that
+      visible: every claim carries a citation to a specific page of a specific document,
+      and you can open the exact passage the model was given. An answer with no source
+      is a different kind of object than an answer with one.
+    </p>
+  </div>
+
+  <h2 id="why-rag">Why retrieval, and not just a bigger model</h2>
+  <p>
+    A language model's knowledge is fixed when it is trained. It has never seen your
+    syllabus, your department's assessment data, last week's journal article, or the
+    manual for the instrument in your lab. Asked about them, a model does not stay
+    silent — it produces something plausible. This is the behaviour usually called
+    hallucination, and no amount of model size eliminates it, because the underlying
+    problem is missing information, not insufficient capacity.
+  </p>
+  <p>
+    Retrieval addresses this directly. Rather than hoping the model knows, the system
+    <em>looks up</em> relevant passages from your documents and places them in front of
+    the model, along with an instruction to answer only from what it was given.
+  </p>
+
+  <div class="row g-3 my-4">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <span class="badge-soft badge-plain">Without retrieval</span>
+          <h3 class="mt-2 mb-2" style="font-size:1.05rem">"What does our policy say about late work?"</h3>
+          <p class="mb-0" style="font-size:0.94rem">
+            The model has never read your policy. It generates a plausible-sounding late
+            work policy, drawing on thousands of other institutions' policies. It may be
+            close. It may be wrong in a way that matters. Nothing in the answer tells you
+            which.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <span class="badge-soft badge-sem">With retrieval</span>
+          <h3 class="mt-2 mb-2" style="font-size:1.05rem">Same question, documents uploaded</h3>
+          <p class="mb-0" style="font-size:0.94rem">
+            The system searches your uploaded handbook, finds the two paragraphs that
+            discuss late submission, and gives them to the model. The answer quotes them
+            and cites <code>handbook.pdf p.14</code>. If the handbook is silent on the
+            question, the answer says so.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 id="pipeline">The short version of how it works</h2>
+  <p>
+    Six stages sit between your question and the answer. The
+    <a href="how-it-works.html">How It Works</a> page walks through each one; this is the
+    shape of it.
+  </p>
+
+  <div class="pipeline">
+    <div class="pipe-step">
+      <span class="pipe-n">01</span>
+      <p class="pipe-name">Split</p>
+      <p class="pipe-desc">Documents are cut into passages, each tagged with its page and section.</p>
+    </div>
+    <div class="pipe-step">
+      <span class="pipe-n">02</span>
+      <p class="pipe-name">Index</p>
+      <p class="pipe-desc">Each passage is stored two ways: by meaning and by exact wording.</p>
+    </div>
+    <div class="pipe-step">
+      <span class="pipe-n">03</span>
+      <p class="pipe-name">Interpret</p>
+      <p class="pipe-desc">Your question is rewritten if needed, so it can be searched effectively.</p>
+    </div>
+    <div class="pipe-step">
+      <span class="pipe-n">04</span>
+      <p class="pipe-name">Search</p>
+      <p class="pipe-desc">Both indexes are searched and their results merged into one ranking.</p>
+    </div>
+    <div class="pipe-step">
+      <span class="pipe-n">05</span>
+      <p class="pipe-name">Select</p>
+      <p class="pipe-desc">The best passages are chosen and fitted to the space the model has.</p>
+    </div>
+    <div class="pipe-step">
+      <span class="pipe-n">06</span>
+      <p class="pipe-name">Answer</p>
+      <p class="pipe-desc">The model writes an answer, citing the passages it used.</p>
+    </div>
+  </div>
+
+  <h2 id="three-modes">Three ways it can answer</h2>
+  <p>
+    A single checkbox in the sidebar — <strong>Allow LLM General Knowledge</strong> —
+    decides which of these you get. This is the most consequential setting in the whole
+    application, and the one to explain first to anyone using it.
+  </p>
+
+  <div class="table-wrap">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Mode</th>
+          <th>When it applies</th>
+          <th>What the model may use</th>
+          <th>Best for</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Strict</strong> <span class="badge-soft badge-sem">default</span></td>
+          <td>Documents indexed, checkbox off</td>
+          <td>Only retrieved passages. Says "not found" rather than guessing.</td>
+          <td>Policy questions, factual lookup, anything you will act on</td>
+        </tr>
+        <tr>
+          <td><strong>Hybrid</strong></td>
+          <td>Documents indexed, checkbox on</td>
+          <td>Retrieved passages plus general knowledge, labelled separately</td>
+          <td>Explaining an unfamiliar concept found in a paper</td>
+        </tr>
+        <tr>
+          <td><strong>General</strong></td>
+          <td>No documents indexed</td>
+          <td>General knowledge only. No citations available.</td>
+          <td>Ordinary questions unrelated to your files</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="callout-title">A distinction worth drilling</span>
+    <p>
+      In <strong>strict</strong> mode, "I could not find that" is a <em>correct</em>
+      answer, not a failure. A system that always produces an answer is not more
+      capable — it is less honest. If students take one idea away from using this tool,
+      make it that one.
+    </p>
+  </div>
+
+  <h2 id="privacy">What stays on your machine</h2>
+  <p>
+    Everything. The language model runs locally through Ollama; the documents you upload
+    are read into memory and never written to disk; the search index is discarded when
+    you close the application. No text is transmitted to any external service, which is
+    what makes the tool usable with student work, unpublished research, and anything else
+    subject to institutional privacy obligations.
+  </p>
+  <p>
+    The practical consequence is that <strong>documents must be re-uploaded each session</strong>.
+    That is a deliberate design decision rather than a limitation to work around.
+  </p>
+
+  <h2 id="orientation">Where to go next</h2>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card h-100"><div class="card-body">
+        <h3 class="mt-0" style="font-size:1.05rem"><a href="how-it-works.html">How It Works</a></h3>
+        <p class="mb-0" style="font-size:0.94rem">The six stages in detail, including why the system searches two different ways at once.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100"><div class="card-body">
+        <h3 class="mt-0" style="font-size:1.05rem"><a href="controls.html">Sidebar Controls</a></h3>
+        <p class="mb-0" style="font-size:0.94rem">Every control in the application, what it does, and what changes when you move it.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100"><div class="card-body">
+        <h3 class="mt-0" style="font-size:1.05rem"><a href="techniques.html">Advanced Techniques</a></h3>
+        <p class="mb-0" style="font-size:0.94rem">The optional retrieval methods, what problem each solves, and what each costs in time.</p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100"><div class="card-body">
+        <h3 class="mt-0" style="font-size:1.05rem"><a href="settings.html">Model Settings</a></h3>
+        <p class="mb-0" style="font-size:0.94rem">Recommended starting values, with the reasoning behind each one.</p>
+      </div></div>
+    </div>
+  </div>
+
+</main>
+
+<aside class="col-lg-3 d-none d-lg-block">
+  <nav class="toc" aria-label="On this page">
+    <p class="control-meta mb-2"><strong>ON THIS PAGE</strong></p>
+    <div class="nav flex-column" id="tocList"></div>
+  </nav>
+</aside>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1">Local LLM Scientific Assistant — documentation for faculty.</p>
+    <p class="mb-0">Runs entirely offline via Ollama. No data leaves your computer.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sidebar Controls · Local LLM Scientific Assistant</title>
+<meta name="description" content="Complete reference for every control in the application: what it does, its range and default, and how changing it affects the answers you get.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="siteNav"></div>
+
+<header class="hero">
+  <div class="container">
+    <span class="badge-soft badge-sem mb-3 d-inline-block">Reference</span>
+    <h1>Sidebar Controls</h1>
+    <p class="lead mt-3">
+      Every control in the application, grouped as it appears on screen. Ranges and
+      defaults are taken from the code, not from memory.
+    </p>
+  </div>
+</header>
+
+<div class="container my-5">
+<div class="row g-5">
+<main class="col-lg-9" id="main">
+
+  <div class="filter-bar">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <label class="visually-hidden" for="filterSearch">Search controls</label>
+        <input type="search" class="form-control" id="filterSearch"
+               placeholder="Search controls… e.g. temperature, keyword, budget">
+      </div>
+      <div class="col-md-7">
+        <div class="d-flex flex-wrap gap-2">
+          <button class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+          <button class="filter-btn" data-filter="context" aria-pressed="false">Context</button>
+          <button class="filter-btn" data-filter="model" aria-pressed="false">Model</button>
+          <button class="filter-btn" data-filter="retrieval" aria-pressed="false">Retrieval</button>
+          <button class="filter-btn" data-filter="documents" aria-pressed="false">Documents</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p id="noResults" class="is-hidden py-4">No controls match that search.</p>
+
+  <!-- ============================================================ -->
+  <div data-group>
+  <h2 id="answer-source">Answer Source</h2>
+  <p>The most consequential setting in the application. It decides whether the model is
+     permitted to draw on anything beyond your documents.</p>
+
+  <div class="card control-card filterable mb-3" id="allow-general" data-tags="context retrieval">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Allow LLM General Knowledge</span>
+        <span class="badge-soft badge-sem">Default: off</span>
+      </div>
+      <p class="control-meta mt-1"><strong>Type</strong> checkbox · appears only when documents are indexed</p>
+      <p class="mt-2">
+        Unchecked, the model may answer only from passages retrieved from your documents,
+        and must say so when the answer is not there. Checked, it may add general knowledge,
+        with instructions to label which is which.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Off</dt><dd>Answers are grounded and citable. Some questions get "not found" — which is the honest result, not a malfunction.</dd>
+        <dt>On</dt><dd>Fewer refusals, but the boundary between your documents and the model's training data now depends on the model labelling it correctly.</dd>
+        <dt>Advice</dt><dd>Leave it off for anything you will act on. Turn it on when you want a concept in a paper explained in broader terms.</dd>
+      </dl>
+    </div>
+  </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <div data-group>
+  <h2 id="context-settings">Context Settings</h2>
+  <p>These shape the voice of the answer, not its content. They apply to the whole
+     conversation.</p>
+
+  <div class="card control-card filterable mb-3" id="perspective" data-tags="context">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Perspective (Who is writing)</span>
+        <span class="badge-soft badge-plain">Default: Scientist</span>
+      </div>
+      <p class="control-meta mt-1"><strong>Options</strong> Scientist · High School Teacher · Lay Person</p>
+      <p class="mt-2">
+        Sets the voice the answer is written in — how technical the vocabulary is, whether
+        it reaches for analogies, how it handles uncertainty.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Impact</dt><dd>Style only. It does not change which passages are retrieved, and will not make an answer more or less accurate.</dd>
+        <dt>Advice</dt><dd>Pair with Audience deliberately. "Scientist → Middle School Student" produces genuinely different output from "Lay Person → Scientist".</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="audience" data-tags="context">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Audience (Who is reading)</span>
+        <span class="badge-soft badge-plain">Default: Scientist</span>
+      </div>
+      <p class="control-meta mt-1"><strong>Options</strong> Scientist · College Student · High School Student · Middle School Student · High School Teacher · Lay Person</p>
+      <p class="mt-2">
+        Sets the reading level and how much prior knowledge is assumed. Selecting a school
+        level introduces explanation of technical terms and everyday examples.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Teaching use</dt><dd>Ask the same question at three audience levels and compare. It demonstrates that an AI system has no single "correct" register — the register is a choice someone made.</dd>
+      </dl>
+    </div>
+  </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <div data-group>
+  <h2 id="model-settings">Model Settings</h2>
+  <p>How the language model generates text. See
+     <a href="settings.html">Model Settings</a> for recommended combinations.</p>
+
+  <div class="card control-card filterable mb-3" id="select-model" data-tags="model">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Select Model</span>
+        <span class="badge-soft badge-plain">Chat models only</span>
+      </div>
+      <p class="control-meta mt-1"><strong>Type</strong> dropdown, populated from your installed Ollama models</p>
+      <p class="mt-2">
+        The model that writes answers. Embedding models are deliberately excluded from
+        this list — they cannot generate text, and selecting one produces confusing errors.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Larger</dt><dd>Better at following the "cite your sources" instruction and less likely to fabricate citations. Slower.</dd>
+        <dt>Smaller</dt><dd>Faster and workable for straightforward lookup. More prone to ignoring instructions.</dd>
+        <dt>Advice</dt><dd>A 7–12&nbsp;billion parameter model is a reasonable starting point on typical hardware.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="temperature" data-tags="model">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Temperature</span>
+        <span class="badge-soft badge-plain">0.0 – 2.0 · default 0.3</span>
+      </div>
+      <p class="mt-2">
+        Controls randomness. At each step the model has a ranked set of possible next
+        words; temperature decides how strictly it favours the top of that list.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Low (0–0.3)</dt><dd>Focused, repeatable, sticks closely to source wording. Correct choice for document questions.</dd>
+        <dt>High (0.8+)</dt><dd>More varied phrasing — and materially more likely to drift from the sources or invent citations.</dd>
+        <dt>Advice</dt><dd><strong>0.1–0.3 for document work.</strong> High temperature and grounded answers pull against each other.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="top-k" data-tags="model">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Top-K</span>
+        <span class="badge-soft badge-plain">1 – 100 · default 40</span>
+      </div>
+      <p class="mt-2">
+        Limits how many candidate words the model may consider at each step. Top-K of 40
+        means it never looks beyond the 40 most likely options.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Low (1–10)</dt><dd>Very constrained. Can read as stilted or repetitive.</dd>
+        <dt>High (60+)</dt><dd>Allows unusual word choices, including some that make the text worse.</dd>
+        <dt>Advice</dt><dd>Leave at 40. This is the least useful dial here — adjust Temperature instead.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="top-p" data-tags="model">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Top-P</span>
+        <span class="badge-soft badge-plain">0.0 – 1.0 · default 0.9</span>
+      </div>
+      <p class="mt-2">
+        Also called nucleus sampling. Rather than a fixed count, it keeps the smallest set
+        of candidate words whose combined probability reaches P — so the model considers
+        few options when confident and more when uncertain.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Low (0.5)</dt><dd>Conservative; only high-confidence words.</dd>
+        <dt>High (0.95+)</dt><dd>Admits the long tail of unlikely words.</dd>
+        <dt>Advice</dt><dd>Leave at 0.9. Top-P and Temperature overlap; changing both at once makes results hard to attribute.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="context-length" data-tags="model retrieval">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Context Length</span>
+        <span class="badge-soft badge-sem">256 – 32,768 · default 8,192</span>
+      </div>
+      <p class="mt-2">
+        How much text the model can hold at once, measured in tokens (roughly ¾ of a word).
+        This must accommodate the system instructions, conversation history, retrieved
+        passages, your question, and the answer being written.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Raising</dt><dd>More retrieved evidence reaches the model. Uses more memory and is slower.</dd>
+        <dt>Lowering</dt><dd>Faster, but the evidence budget shrinks and fewer passages are sent.</dd>
+        <dt>Advice</dt><dd><strong>Do not lower this to speed up document questions.</strong> Roughly 60% of it is the budget for retrieved passages. Turn off optional techniques instead.</dd>
+        <dt>Caution</dt><dd>Setting it above what your model supports has no effect — the model ignores the excess.</dd>
+      </dl>
+    </div>
+  </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <div data-group>
+  <h2 id="retrieval-settings">Retrieval Settings</h2>
+
+  <div class="card control-card filterable mb-3" id="embedding-model" data-tags="retrieval model">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Embedding Model</span>
+        <span class="badge-soft badge-sem">Required for document search</span>
+      </div>
+      <p class="control-meta mt-1"><strong>Typical</strong> <code>nomic-embed-text</code> · <code>mxbai-embed-large</code></p>
+      <p class="mt-2">
+        The model that converts passages and questions into numeric representations for
+        semantic search. It is a different kind of model from the chat model and must be
+        installed separately: <code>ollama pull nomic-embed-text</code>.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Without one</dt><dd>Documents can be uploaded and read but not searched. The application says so plainly rather than answering from general knowledge while appearing to read your files.</dd>
+        <dt>Changing it</dt><dd>Invalidates the index. Vectors built by one model are meaningless to another, so documents must be processed again.</dd>
+        <dt>Advice</dt><dd><code>nomic-embed-text</code> is fast and sufficient. Larger embedding models cost ingest time for modest gains.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="clear-store" data-tags="retrieval documents">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Clear Vector Store</span>
+        <span class="badge-soft badge-plain">Button</span>
+      </div>
+      <p class="mt-2">
+        Discards the search index and the loaded documents. The index is held in memory
+        only, so it also clears itself when you close the application — this button is for
+        clearing it deliberately, such as before handing the machine to someone else.
+      </p>
+      <dl class="effect mt-3">
+        <dt>After clearing</dt><dd>Strict mode has nothing to answer from and will decline until you process documents again.</dd>
+        <dt>Privacy</dt><dd>Nothing was written to disk at any point, so nothing needs deleting from disk.</dd>
+      </dl>
+    </div>
+  </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <div data-group>
+  <h2 id="retrieval-tuning">Retrieval Tuning</h2>
+  <p>Appears once documents are indexed. These change <em>which</em> passages are found —
+     none of them costs an extra model call, so they are free to experiment with.</p>
+
+  <div class="card control-card filterable mb-3" id="balance" data-tags="retrieval">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Semantic ↔ Keyword balance</span>
+        <span class="badge-soft badge-sem">0.0 – 1.0 · default 0.5</span>
+      </div>
+      <p class="mt-2">
+        Weights the two search methods against each other. 1.0 is meaning-only, 0.0 is
+        exact-wording-only, 0.5 treats them equally.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Toward keyword</dt><dd>Better for part numbers, gene names, statute references, defined terms — anything where the exact string matters.</dd>
+        <dt>Toward semantic</dt><dd>Better for conceptual and paraphrased questions where you do not know the document's wording.</dd>
+        <dt>Advice</dt><dd>Leave at 0.5 unless a specific question is failing. Measured on a test corpus, keyword-only missed every paraphrased question while balanced search found them.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="passages-sent" data-tags="retrieval">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Passages sent to the model</span>
+        <span class="badge-soft badge-sem">1 – 15 · default 5</span>
+      </div>
+      <p class="mt-2">
+        How many of the best-ranked passages are placed in front of the model as evidence.
+      </p>
+      <dl class="effect mt-3">
+        <dt>More (8–15)</dt><dd>Better for broad questions ("summarise the findings") that draw on several parts of a document. Uses more of the context window.</dd>
+        <dt>Fewer (2–3)</dt><dd>Better for narrow factual lookup. Less irrelevant material to distract the model.</dd>
+        <dt>Advice</dt><dd>5 suits most questions. Raise it for synthesis and comparison; lower it if answers wander.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="candidates-considered" data-tags="retrieval">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Candidates considered</span>
+        <span class="badge-soft badge-sem">up to 40 · default 12</span>
+      </div>
+      <p class="mt-2">
+        How many passages survive the merge and are available for the final selection. If
+        re-ranking is on, this is the pool it scores.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Higher</dt><dd>Gives re-ranking more to work with — a passage buried at rank 15 can still be promoted. Costs little without re-ranking.</dd>
+        <dt>Advice</dt><dd>12 is fine by default. Raise to 20–25 when using re-ranking; that combination is where it pays off.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="candidates-per-index" data-tags="retrieval">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Candidates per index</span>
+        <span class="badge-soft badge-sem">5 – 50 · default 20</span>
+      </div>
+      <p class="mt-2">
+        How deep each of the two indexes searches before their results are merged. Applies
+        equally to the semantic and keyword sides.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Higher</dt><dd>Casts a wider net, so a passage that only one method ranks well still enters the merge. Slightly slower.</dd>
+        <dt>Lower</dt><dd>Faster on very large document sets, at the cost of recall.</dd>
+        <dt>Advice</dt><dd>20 is a sensible default. Raise it if you suspect relevant passages are being missed entirely rather than merely ranked low.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="restrict-documents" data-tags="retrieval documents">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Restrict search to: Documents</span>
+        <span class="badge-soft badge-plain">Default: all</span>
+      </div>
+      <p class="mt-2">
+        Limits searching to the documents you select. This is <em>metadata pre-filtering</em>:
+        the restriction is applied before the search runs, not by discarding results afterwards.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Use for</dt><dd>Asking about one paper when several are loaded, or excluding a document you know is irrelevant.</dd>
+        <dt>Caution</dt><dd>Filter too narrowly and the answer is limited to that document — which can look like the information is missing when it is simply out of scope.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="followups" data-tags="model">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Generate follow-up questions</span>
+        <span class="badge-soft badge-costly">On · costs 1 model call</span>
+      </div>
+      <p class="mt-2">
+        After each answer, suggests three follow-up questions you can click to ask.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Cost</dt><dd>One additional model call per answer — often several seconds on local hardware.</dd>
+        <dt>Advice</dt><dd>Genuinely useful when exploring an unfamiliar document. Turn it off when you know what you are looking for and want speed.</dd>
+      </dl>
+    </div>
+  </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <div data-group>
+  <h2 id="document-controls">Document Controls</h2>
+
+  <div class="card control-card filterable mb-3" id="process-documents" data-tags="documents">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Process Documents</span>
+        <span class="badge-soft badge-plain">Button · PDF, DOCX, PPTX · 200 MB per file</span>
+      </div>
+      <p class="mt-2">
+        Extracts text, splits it into passages, and builds both search indexes. A progress
+        bar shows the embedding stage, which is the slow part.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Scanned PDFs</dt><dd>Contain images, not text. Nothing can be extracted; the application detects this and warns you at upload rather than failing quietly later. Run such files through OCR first.</dd>
+        <dt>Document length</dt><dd>Does not limit answer quality. Retrieval finds the relevant passages wherever they sit, so a 500-page manual works as well as a 2-page memo.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="contextual-headers" data-tags="documents retrieval">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Add contextual headers</span>
+        <span class="badge-soft badge-costly">Off · 1 model call per passage</span>
+      </div>
+      <p class="mt-2">
+        Before indexing, writes a sentence of surrounding context into each passage, so
+        that a passage full of vague references stays findable. "The value rose to 12% in
+        the second cohort" becomes searchable as being about the specific study it belongs to.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Benefit</dt><dd>Substantially better retrieval on documents that rely on pronouns and back-references, which is most academic writing.</dd>
+        <dt>Cost</dt><dd>The most expensive option here. A 100-page document is roughly 150 passages, so roughly 150 model calls — minutes, not seconds. Because the index is temporary, this is repaid every session.</dd>
+        <dt>Advice</dt><dd>Worth it for a document you will question extensively in one sitting. Not worth it for a quick lookup.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card control-card filterable mb-3" id="preview-inspect" data-tags="documents">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <span class="control-name">Preview Document Content · Inspect Indexed Chunks</span>
+        <span class="badge-soft badge-plain">Diagnostic</span>
+      </div>
+      <p class="mt-2">
+        Preview shows the raw extracted text. Inspect shows the actual passages retrieval
+        searches over, with page numbers, detected sections and sizes.
+      </p>
+      <dl class="effect mt-3">
+        <dt>Use when</dt><dd>An answer misses something you are certain is in the document. Check here first — it separates an extraction problem from a search problem, which need completely different fixes.</dd>
+      </dl>
+    </div>
+  </div>
+  </div>
+
+  <div class="callout callout-tip mt-5">
+    <span class="callout-title">Where to start</span>
+    <p>
+      Leave everything at its default and use the application normally. Defaults were
+      chosen to be correct for most questions. When something specific fails, change
+      <em>one</em> setting, ask the same question again, and compare — changing several at
+      once makes it impossible to know which one helped.
+    </p>
+  </div>
+
+</main>
+
+<aside class="col-lg-3 d-none d-lg-block">
+  <nav class="toc" aria-label="On this page">
+    <p class="control-meta mb-2"><strong>ON THIS PAGE</strong></p>
+    <div class="nav flex-column" id="tocList"></div>
+  </nav>
+</aside>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1">Local LLM Scientific Assistant — documentation for faculty.</p>
+    <p class="mb-0">Runs entirely offline via Ollama. No data leaves your computer.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

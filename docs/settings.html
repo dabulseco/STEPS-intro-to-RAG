@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model Settings · Local LLM Scientific Assistant</title>
+<meta name="description" content="Recommended model settings for document work, teaching and exploration, with the reasoning behind each value.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="siteNav"></div>
+
+<header class="hero">
+  <div class="container">
+    <span class="badge-soft badge-sem mb-3 d-inline-block">Recommendations</span>
+    <h1>Model Settings</h1>
+    <p class="lead mt-3">
+      What to set, and why. If you read only one line: use a low temperature for document
+      work, and never lower Context Length to make things faster.
+    </p>
+  </div>
+</header>
+
+<div class="container my-5">
+<div class="row g-5">
+<main class="col-lg-9" id="main">
+
+  <h2 id="presets">Three starting points</h2>
+  <p>
+    Rather than tuning from scratch, start from whichever of these matches your task and
+    adjust one value at a time.
+  </p>
+
+  <div class="row g-3 my-3">
+    <div class="col-lg-4">
+      <div class="card h-100 preset" style="border-color:var(--sem)">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Document Q&amp;A</span>
+          <span class="badge-soft badge-sem">Recommended</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:0.93rem">
+            Factual questions about uploaded material, where accuracy and citability matter
+            more than prose style. The right default for most faculty use.
+          </p>
+          <dl class="row preset-values mb-0">
+            <dt class="col-7">Temperature</dt><dd class="col-5 text-end mb-1">0.1 – 0.2</dd>
+            <dt class="col-7">Top-K</dt><dd class="col-5 text-end mb-1">40</dd>
+            <dt class="col-7">Top-P</dt><dd class="col-5 text-end mb-1">0.9</dd>
+            <dt class="col-7">Context Length</dt><dd class="col-5 text-end mb-1">8,192+</dd>
+            <dt class="col-7">General knowledge</dt><dd class="col-5 text-end mb-0">off</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card h-100 preset">
+        <div class="card-header">Teaching &amp; explanation</div>
+        <div class="card-body">
+          <p style="font-size:0.93rem">
+            Explaining concepts from a document to students. Slightly more freedom in
+            phrasing so analogies and examples come out naturally.
+          </p>
+          <dl class="row preset-values mb-0">
+            <dt class="col-7">Temperature</dt><dd class="col-5 text-end mb-1">0.3 – 0.5</dd>
+            <dt class="col-7">Top-K</dt><dd class="col-5 text-end mb-1">40</dd>
+            <dt class="col-7">Top-P</dt><dd class="col-5 text-end mb-1">0.9</dd>
+            <dt class="col-7">Context Length</dt><dd class="col-5 text-end mb-1">8,192</dd>
+            <dt class="col-7">General knowledge</dt><dd class="col-5 text-end mb-0">on</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card h-100 preset">
+        <div class="card-header">Brainstorming</div>
+        <div class="card-body">
+          <p style="font-size:0.93rem">
+            Generating assignment ideas or discussion prompts, where variety is the point
+            and nothing will be taken as fact without checking.
+          </p>
+          <dl class="row preset-values mb-0">
+            <dt class="col-7">Temperature</dt><dd class="col-5 text-end mb-1">0.7 – 0.9</dd>
+            <dt class="col-7">Top-K</dt><dd class="col-5 text-end mb-1">40 – 60</dd>
+            <dt class="col-7">Top-P</dt><dd class="col-5 text-end mb-1">0.95</dd>
+            <dt class="col-7">Context Length</dt><dd class="col-5 text-end mb-1">4,096</dd>
+            <dt class="col-7">General knowledge</dt><dd class="col-5 text-end mb-0">on</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-warn">
+    <span class="callout-title">The one combination to avoid</span>
+    <p>
+      High temperature with strict document mode. You have told the system to stay strictly
+      within the sources while simultaneously encouraging it to make less predictable word
+      choices. The usual result is answers that drift from the source wording and cite less
+      reliably — precisely the behaviour strict mode exists to prevent.
+    </p>
+  </div>
+
+  <h2 id="temperature">Temperature, in more detail</h2>
+  <p>
+    Of the sampling controls, this is the one actually worth adjusting. At every step the
+    model holds a ranked list of possible next words with probabilities attached.
+    Temperature reshapes that list before one is picked.
+  </p>
+
+  <div class="table-wrap">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Value</th><th>Behaviour</th><th>Suits</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">0.0</td>
+          <td>Always the highest-probability word. Fully repeatable — the same question gives the same answer.</td>
+          <td>Extracting exact values; demonstrating reproducibility</td>
+        </tr>
+        <tr>
+          <td class="mono">0.1 – 0.3</td>
+          <td>Nearly deterministic, with enough variation to read naturally.</td>
+          <td><strong>Document questions — the recommended range</strong></td>
+        </tr>
+        <tr>
+          <td class="mono">0.4 – 0.6</td>
+          <td>Noticeably more varied phrasing; still generally faithful to sources.</td>
+          <td>Explanation and teaching</td>
+        </tr>
+        <tr>
+          <td class="mono">0.7 – 1.0</td>
+          <td>Creative. Analogies and examples appear unprompted, some of them invented.</td>
+          <td>Brainstorming, never factual lookup</td>
+        </tr>
+        <tr>
+          <td class="mono">1.0+</td>
+          <td>Increasingly incoherent on most local models.</td>
+          <td>Demonstrating what temperature does</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-teach">
+    <span class="callout-title">A demonstration worth doing</span>
+    <p>
+      Set temperature to <code>0.0</code> and ask the same question three times — identical
+      answers. Set it to <code>1.0</code> and repeat — three different answers. Students
+      routinely assume AI output is either deterministic or arbitrary; seeing that it is a
+      dial someone chose is more informative than any explanation.
+    </p>
+  </div>
+
+  <h2 id="context">Context Length, and the mistake to avoid</h2>
+  <p>
+    Context length is the total working space, measured in tokens — roughly ¾ of a word
+    each. Everything shares it: system instructions, conversation history, retrieved
+    passages, your question, and the answer being generated.
+  </p>
+
+  <div class="table-wrap">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Setting</th><th class="num">Evidence budget</th><th>Suits</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">2,048</td><td class="num">~4,900 characters</td><td>Short documents only; too tight for real work</td></tr>
+        <tr><td class="mono">8,192 <span class="badge-soft badge-sem">default</span></td><td class="num">~19,600 characters</td><td>Comfortable for most document questions</td></tr>
+        <tr><td class="mono">16,384</td><td class="num">~39,300 characters</td><td>Long synthesis questions across several documents</td></tr>
+        <tr><td class="mono">32,768</td><td class="num">~78,600 characters</td><td>Only if your model supports it; uses substantial memory</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="mt-3">
+    About 60% of this is reserved as the budget for retrieved passages; the remainder holds
+    everything else. That is why lowering it has a direct, unwanted effect on answer quality
+    when documents are loaded.
+  </p>
+
+  <div class="callout callout-warn">
+    <span class="callout-title">Do not lower Context Length to gain speed</span>
+    <p>
+      It is a natural instinct and it makes document answers worse — less of your material
+      reaches the model. To speed things up, turn off optional techniques under Advanced
+      Techniques, switch off follow-up question generation, or use a smaller chat model.
+    </p>
+    <p>
+      Setting it <em>higher</em> than your model supports is harmless but pointless: the
+      excess is ignored. Check your model's context window before raising it far.
+    </p>
+  </div>
+
+  <h2 id="two-models">Why two models are needed</h2>
+  <p>
+    Document search requires an embedding model in addition to the chat model. They do
+    different jobs and are not interchangeable.
+  </p>
+
+  <div class="row g-3 my-3">
+    <div class="col-md-6">
+      <div class="card h-100"><div class="card-body">
+        <span class="badge-soft badge-plain">Chat model</span>
+        <h3 class="mt-2" style="font-size:1.05rem">Writes the answer</h3>
+        <p class="mb-2" style="font-size:0.93rem">Reads the retrieved passages and composes a response. Larger models follow the citation instructions more reliably.</p>
+        <p class="mb-0"><code>ollama pull llama3.1</code></p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100"><div class="card-body">
+        <span class="badge-soft badge-sem">Embedding model</span>
+        <h3 class="mt-2" style="font-size:1.05rem">Makes text searchable</h3>
+        <p class="mb-2" style="font-size:0.93rem">Converts passages and questions into numbers so they can be compared by meaning. Cannot generate text.</p>
+        <p class="mb-0"><code>ollama pull nomic-embed-text</code></p>
+      </div></div>
+    </div>
+  </div>
+
+  <p>
+    Without an embedding model the application still runs, documents can still be uploaded
+    and read — but they cannot be searched, and the interface says so rather than answering
+    from general knowledge while appearing to consult your files.
+  </p>
+
+  <h2 id="hardware">Matching settings to your hardware</h2>
+  <div class="table-wrap">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Machine</th><th>Chat model</th><th>Context</th><th>Optional techniques</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>8 GB RAM, no GPU</td>
+          <td>7B or smaller</td>
+          <td class="mono">4,096</td>
+          <td>All off; follow-ups off</td>
+        </tr>
+        <tr>
+          <td>16 GB RAM</td>
+          <td>7B – 13B</td>
+          <td class="mono">8,192</td>
+          <td>Re-ranking when needed</td>
+        </tr>
+        <tr>
+          <td>32 GB+ or Apple Silicon</td>
+          <td>13B – 30B</td>
+          <td class="mono">8,192 – 16,384</td>
+          <td>Any, including contextual headers</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="mt-3">
+    For scale: on a mid-range machine a plain document question took around 12 seconds,
+    while the same question with every optional technique enabled took about 40. That
+    difference is the reason the defaults are conservative.
+  </p>
+
+  <h2 id="checklist">Setup checklist</h2>
+  <ol style="max-width:62ch">
+    <li class="mb-2">Install Ollama, then <code>ollama pull nomic-embed-text</code> and one chat model.</li>
+    <li class="mb-2">Start Ollama, then launch the application.</li>
+    <li class="mb-2">Confirm the sidebar lists both a chat model and an embedding model.</li>
+    <li class="mb-2">Set Temperature to <code>0.2</code> and leave Top-K and Top-P alone.</li>
+    <li class="mb-2">Leave Context Length at <code>8,192</code>.</li>
+    <li class="mb-2">Upload a document, process it, and confirm the sidebar shows a chunk count.</li>
+    <li class="mb-2">Ask a question you know the answer to, and open the Sources panel to check the citation points where it should.</li>
+  </ol>
+
+  <div class="callout callout-tip">
+    <span class="callout-title">Verify before you trust</span>
+    <p>
+      Step 7 is the one people skip. Asking a question whose answer you already know, then
+      confirming the citation points at the right page, is the fastest way to establish
+      whether the system is working — and the habit worth teaching to anyone who will use it.
+    </p>
+  </div>
+
+</main>
+
+<aside class="col-lg-3 d-none d-lg-block">
+  <nav class="toc" aria-label="On this page">
+    <p class="control-meta mb-2"><strong>ON THIS PAGE</strong></p>
+    <div class="nav flex-column" id="tocList"></div>
+  </nav>
+</aside>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1">Local LLM Scientific Assistant — documentation for faculty.</p>
+    <p class="mb-0">Runs entirely offline via Ollama. No data leaves your computer.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

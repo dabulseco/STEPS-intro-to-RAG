@@ -146,6 +146,18 @@ A: Yes! Everything runs locally. No internet needed after installation.
 **Q: Which model should I use?**  
 A: Start with `llama2` (good balance of speed and quality). Try `mistral` for coding questions.
 
+**Q: What do Temperature, Top-K and Top-P do?**  
+A: They control how the model picks each next word. For document questions set
+**Temperature to 0.1–0.3** and leave Top-K (40) and Top-P (0.9) alone — they
+overlap with temperature, and changing several at once makes results impossible
+to attribute. Full explanations and three recommended presets are in
+[`docs/settings.html`](docs/settings.html).
+
+**Q: How do I empty the vector store?**  
+A: **"🗑️ Clear Vector Store"** in the sidebar drops the index and the loaded
+documents. It also clears itself when you close the app — nothing is written to
+disk at any point.
+
 **Q: Why are responses slow?**  
 A: Use a smaller model variant (e.g., `llama2:7b`), and turn off options under
 **"🧪 Advanced Techniques"** -- each one adds a model call. Turning off
@@ -170,12 +182,23 @@ was not supplied, it flags the answer with a warning.
 
 ## Tuning Retrieval (optional)
 
-Once documents are loaded, two sidebar panels appear:
+> 📖 **Full reference:** every control below is documented in detail — with
+> ranges, defaults and the effect of changing each one — in the documentation
+> website at [`docs/`](docs/index.html). Open `docs/index.html` in a browser.
 
-**🎛️ Retrieval Tuning** -- the one setting worth knowing is the
-**semantic ↔ keyword balance**. Slide it toward keyword when exact terms matter
-(part numbers, gene names, statute references); toward semantic for
-conceptual or paraphrased questions. The default 50/50 is a good starting point.
+Once documents are loaded, two sidebar panels appear.
+
+**🎛️ Retrieval Tuning** — these change *which* passages are found and cost no
+extra model call, so they are free to experiment with:
+
+| Control | Range · default | What it does |
+|---|---|---|
+| Semantic ↔ Keyword balance | 0.0–1.0 · **0.5** | Weights meaning-based against exact-wording search. Toward keyword for part numbers and defined terms; toward semantic for paraphrased questions. |
+| Passages sent to the model | 1–15 · **5** | How much evidence reaches the model. Raise for broad synthesis questions, lower for narrow lookups. |
+| Candidates considered | up to 40 · **12** | The pool the final selection draws from. Raise to 20–25 when re-ranking is on. |
+| Candidates per index | 5–50 · **20** | How deep each index searches before results merge. Raise if passages are missed entirely. |
+| Restrict search to | all documents | Limits retrieval to chosen files, applied *before* searching. |
+| Generate follow-up questions | **on** | Suggests 3 follow-ups. Costs one model call per answer — turn off for speed. |
 
 **🧪 Advanced Techniques** -- each costs an extra model call, so turn on only
 what helps your documents:
@@ -188,6 +211,7 @@ what helps your documents:
 | HyDE | questions are short and jargon-heavy |
 | Infer document/section filter | you name a document or section in the question |
 | Re-rank retrieved passages | the right passage is found but ranked too low |
+| Add contextual headers *(at upload)* | a document leans on pronouns and back-references — costs one model call **per chunk**, so minutes on a long document |
 
 Not sure which help? Run the evaluation harness against your own documents:
 

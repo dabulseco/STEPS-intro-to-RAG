@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Advanced Techniques · Local LLM Scientific Assistant</title>
+<meta name="description" content="Every advanced retrieval technique in the application: the problem each one solves, when to turn it on, and what it costs in time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="siteNav"></div>
+
+<header class="hero">
+  <div class="container">
+    <span class="badge-soft badge-sem mb-3 d-inline-block">Techniques</span>
+    <h1>Advanced Retrieval Techniques</h1>
+    <p class="lead mt-3">
+      Each of these solves a specific failure. Each costs something. Almost all ship
+      switched off, because on a local machine the cost is seconds per question and you
+      should spend them where they help.
+    </p>
+  </div>
+</header>
+
+<div class="container my-5">
+<div class="row g-5">
+<main class="col-lg-9" id="main">
+
+  <h2 id="always-on">Techniques that are always on</h2>
+  <p>
+    These cost nothing at question time — they are decided when documents are indexed, or
+    are plain index work with no model involved. There is no switch because there is no
+    reason to turn them off.
+  </p>
+
+  <div class="table-wrap">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Technique</th><th>Problem it solves</th><th>Cost</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Hybrid search</strong></td>
+          <td>Meaning-based search misses exact identifiers; word-based search misses paraphrases. Running both covers each other's blind spot.</td>
+          <td><span class="badge-soft badge-free">Free</span></td>
+        </tr>
+        <tr>
+          <td><strong>Rank fusion (RRF)</strong></td>
+          <td>Two searches produce scores on incomparable scales. Merging by rank position instead needs no tuning per document set.</td>
+          <td><span class="badge-soft badge-free">Free</span></td>
+        </tr>
+        <tr>
+          <td><strong>Structure-aware splitting</strong></td>
+          <td>A passage spanning two pages cannot be cited honestly. Splitting inside page boundaries keeps every citation exact.</td>
+          <td><span class="badge-soft badge-free">At ingest</span></td>
+        </tr>
+        <tr>
+          <td><strong>Search small, read big</strong></td>
+          <td>Small passages match precisely but read as fragments. Match on the small one, hand the model the larger passage around it.</td>
+          <td><span class="badge-soft badge-free">Free</span></td>
+        </tr>
+        <tr>
+          <td><strong>Budgeted context</strong></td>
+          <td>Overfilling the model's context window causes silent truncation. Measuring first makes overflow impossible.</td>
+          <td><span class="badge-soft badge-free">Free</span></td>
+        </tr>
+        <tr>
+          <td><strong>Citation verification</strong></td>
+          <td>Models sometimes cite sources that were never supplied. Every marker is checked; fabrications are flagged.</td>
+          <td><span class="badge-soft badge-free">Free</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 id="optional">Optional techniques</h2>
+  <p>
+    Each entry below states the problem, the mechanism, when it earns its cost, and its
+    trade-off. Use the filter to narrow the list.
+  </p>
+
+  <div class="filter-bar">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <label class="visually-hidden" for="filterSearch">Search techniques</label>
+        <input type="search" class="form-control" id="filterSearch"
+               placeholder="Search techniques… e.g. follow-up, rerank, HyDE">
+      </div>
+      <div class="col-md-7">
+        <div class="d-flex flex-wrap gap-2">
+          <button class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+          <button class="filter-btn" data-filter="query" aria-pressed="false">Query-side</button>
+          <button class="filter-btn" data-filter="ranking" aria-pressed="false">Ranking</button>
+          <button class="filter-btn" data-filter="ingest" aria-pressed="false">Ingest-side</button>
+          <button class="filter-btn" data-filter="default-on" aria-pressed="false">On by default</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p id="noResults" class="is-hidden py-4">No techniques match that search.</p>
+
+  <!-- ---------------------------------------------------------- -->
+  <div class="card control-card filterable mb-4" id="condensation" data-tags="query default-on">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+        <h3 class="mt-0 mb-0">Resolve follow-up references</h3>
+        <span class="badge-soft badge-sem">On by default · 1 call when triggered</span>
+      </div>
+
+      <p><strong>The problem.</strong> Follow-up questions are mostly grammar. "How does
+      that compare to the control?" contains almost nothing to search for — the subject
+      lives in the previous exchange.</p>
+
+      <p><strong>The mechanism.</strong> Before searching, the question is rewritten as a
+      standalone one using the recent conversation. It only runs when the question actually
+      looks like a follow-up, so self-contained questions cost nothing.</p>
+
+      <div class="row g-2 my-3">
+        <div class="col-md-6">
+          <div class="p-3 rounded" style="background:var(--paper);border:1px solid var(--rule)">
+            <p class="control-meta mb-1"><strong>YOU TYPE</strong></p>
+            <p class="mb-0" style="font-size:0.94rem">"How does that compare to the control?"</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="p-3 rounded" style="background:var(--sem-soft);border:1px solid var(--rule)">
+            <p class="control-meta mb-1"><strong>WHAT IS SEARCHED</strong></p>
+            <p class="mb-0" style="font-size:0.94rem">"How does the 38 nA/cm² chloride transport in the CFTR-KO line compare to the wildtype control?"</p>
+          </div>
+        </div>
+      </div>
+
+      <dl class="effect">
+        <dt>Turn off if</dt><dd>You always ask complete, self-contained questions and want every millisecond.</dd>
+        <dt>Measured</dt><dd>Without it, the bare follow-up above retrieved only the control values — missing the figure needed for the comparison. With it, both were retrieved.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------- -->
+  <div class="card control-card filterable mb-4" id="rewrite" data-tags="query">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+        <h3 class="mt-0 mb-0">Rewrite query for retrieval</h3>
+        <span class="badge-soft badge-costly">Off · 1 call per question</span>
+      </div>
+
+      <p><strong>The problem.</strong> You ask in your words; the document is written in
+      its authors'. A student asking "what makes cells die on purpose" will not match a
+      paper that says "apoptotic pathways".</p>
+
+      <p><strong>The mechanism.</strong> The model restates your question in the formal
+      terminology a document would use, keeping every specific name and number intact.</p>
+
+      <dl class="effect">
+        <dt>Turn on when</dt><dd>You are searching unfamiliar technical material and do not know its vocabulary.</dd>
+        <dt>Turn off when</dt><dd>You already know the terminology — your own wording is then better than a rewrite.</dd>
+        <dt>Safety</dt><dd>If the rewrite comes back unusable, your original wording is used instead. A bad rewrite is worse than none, so the system is deliberately suspicious of its own output.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------- -->
+  <div class="card control-card filterable mb-4" id="multi-query" data-tags="query">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+        <h3 class="mt-0 mb-0">Search multiple phrasings</h3>
+        <span class="badge-soft badge-costly">Off · 1 call + 3 embeddings</span>
+      </div>
+
+      <p><strong>The problem.</strong> Any single phrasing of a question is one arbitrary
+      route into the document. A slightly different phrasing would have found something else.</p>
+
+      <p><strong>The mechanism.</strong> Three alternative phrasings are generated, each
+      searched independently, and the results merged. A passage that any one phrasing finds
+      convincingly is not buried because the others missed it.</p>
+
+      <dl class="effect">
+        <dt>Turn on when</dt><dd>You suspect passages are being missed entirely — especially for comparison questions that need material from several documents at once.</dd>
+        <dt>Trade-off</dt><dd>The best single improvement to <em>recall</em> here, at the cost of one call and three embeddings.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------- -->
+  <div class="card control-card filterable mb-4" id="hyde" data-tags="query">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+        <h3 class="mt-0 mb-0">HyDE — search by hypothetical answer</h3>
+        <span class="badge-soft badge-costly">Off · 1 call per question</span>
+      </div>
+
+      <p><strong>The problem.</strong> Questions and answers are written differently. One
+      asks, the other states. Because semantic search compares your text to document text,
+      that mismatch in <em>form</em> pushes them apart even when the topic matches.</p>
+
+      <p><strong>The mechanism.</strong> The model writes a short passage that plausibly
+      answers your question, and <em>that</em> is used for the semantic search instead of
+      the question. The invented passage need not be factually correct — only its shape and
+      vocabulary matter. It is never shown to you and never used as evidence.</p>
+
+      <div class="callout callout-teach my-3">
+        <span class="callout-title">Worth explaining to students</span>
+        <p>
+          This one reliably provokes "isn't that making things up?" The answer is
+          instructive: the invented text is used only as a <em>search key</em>, never as
+          evidence. It is thrown away once the real passages are found. The distinction
+          between using a generated artefact to search and using it to answer is a genuinely
+          useful concept.
+        </p>
+      </div>
+
+      <dl class="effect">
+        <dt>Turn on when</dt><dd>Questions are short and jargon-heavy and plain search returns little.</dd>
+        <dt>Note</dt><dd>Applies to semantic search only. Keyword search keeps using your literal words, since invented terms would corrupt exact matching.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------- -->
+  <div class="card control-card filterable mb-4" id="filter-inference" data-tags="query">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+        <h3 class="mt-0 mb-0">Infer document/section filter</h3>
+        <span class="badge-soft badge-costly">Off · 1 call per question</span>
+      </div>
+
+      <p><strong>The problem.</strong> When you say "in the methods section of the Smith
+      paper", you have narrowed the search yourself — but a plain search ignores that and
+      hunts everywhere.</p>
+
+      <p><strong>The mechanism.</strong> The model extracts the restriction and applies it
+      as a filter <em>before</em> searching, so only the named document or section is
+      considered.</p>
+
+      <dl class="effect">
+        <dt>Turn on when</dt><dd>You routinely name documents or sections in your questions and have several files loaded.</dd>
+        <dt>Safety</dt><dd>A filter naming a document that is not loaded is rejected rather than applied — an invalid filter would match nothing and produce a confidently empty answer.</dd>
+        <dt>Alternative</dt><dd>The <strong>Restrict search to: Documents</strong> selector does the same thing manually, with no model call and no ambiguity.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------- -->
+  <div class="card control-card filterable mb-4" id="reranking" data-tags="ranking">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+        <h3 class="mt-0 mb-0">Re-rank retrieved passages</h3>
+        <span class="badge-soft badge-costly">Off · 1 call per question</span>
+      </div>
+
+      <p><strong>The problem.</strong> Search is good at deciding what is <em>roughly</em>
+      relevant and less good at ordering the top few. The passage that truly answers your
+      question may arrive fourth.</p>
+
+      <p><strong>The mechanism.</strong> Deliberately retrieve more than needed, then score
+      each candidate against your question directly and keep the best. Retrieval optimises
+      for finding everything; re-ranking optimises for putting the right thing first. They
+      want opposite things, which is exactly why doing both beats doing either harder.</p>
+
+      <div class="table-wrap my-3">
+        <table class="table table-sm align-middle mb-0">
+          <thead><tr><th>Passage</th><th class="num">Score</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>The knockout line's measurement</td><td class="num">10.0</td><td>Promoted to first</td></tr>
+            <tr><td>The control line's measurement</td><td class="num">5.0</td><td>Kept — useful context</td></tr>
+            <tr><td>Routine log entries</td><td class="num">0.0</td><td>Dropped</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <dl class="effect">
+        <dt>Turn on when</dt><dd>The Sources panel shows the right passage present but ranked low. This is the largest single precision gain available.</dd>
+        <dt>Pair with</dt><dd>Raising <strong>Candidates considered</strong> to 20–25 — re-ranking can only promote what retrieval collected.</dd>
+        <dt>Two backends</dt><dd><em>Local LLM</em> scores everything in one call and needs no installation. <em>Cross-encoder</em> is faster and more accurate per query but requires installing <code>sentence-transformers</code>.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------- -->
+  <div class="card control-card filterable mb-4" id="contextual-headers" data-tags="ingest">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+        <h3 class="mt-0 mb-0">Add contextual headers</h3>
+        <span class="badge-soft badge-costly">Off · 1 call per passage</span>
+      </div>
+
+      <p><strong>The problem.</strong> A passage lifted out of a long document loses what
+      made it meaningful. "The value rose to 12% in the second cohort" is unfindable for a
+      question about a specific drug, because the drug was named three pages earlier.</p>
+
+      <p><strong>The mechanism.</strong> At indexing time, a sentence of context is written
+      into each passage before it is converted to numbers. The passage's own text is left
+      untouched — only its searchable representation is enriched, so what you see cited
+      remains the document's own words.</p>
+
+      <dl class="effect">
+        <dt>Turn on when</dt><dd>Working extensively with one document that relies on pronouns and back-references — which is most academic writing.</dd>
+        <dt>Cost</dt><dd>By far the most expensive option. Roughly 150 model calls for a 100-page document, so minutes rather than seconds. Because the index is temporary, this is paid again every session.</dd>
+        <dt>Advice</dt><dd>Worth it for a sustained working session. Not worth it for a quick lookup.</dd>
+      </dl>
+    </div>
+  </div>
+
+  <h2 id="choosing">Choosing what to enable</h2>
+  <p>
+    Start with everything at its default. When a specific question fails, work through this
+    order — it moves from cheapest to most expensive, and from most to least likely to help.
+  </p>
+
+  <ol class="mt-3" style="max-width:62ch">
+    <li class="mb-2"><strong>Check the diagnostics first.</strong> If nothing was retrieved, no amount of re-ranking will help.</li>
+    <li class="mb-2"><strong>Move the balance slider.</strong> Free, instant, and often sufficient.</li>
+    <li class="mb-2"><strong>Raise passages sent.</strong> Also free.</li>
+    <li class="mb-2"><strong>Turn on re-ranking.</strong> One call, biggest precision gain.</li>
+    <li class="mb-2"><strong>Turn on multiple phrasings.</strong> One call, biggest recall gain.</li>
+    <li class="mb-2"><strong>Add contextual headers.</strong> Only when the document itself is the problem, and only for a session you will spend time in.</li>
+  </ol>
+
+  <div class="callout callout-warn">
+    <span class="callout-title">Measure, don't assume</span>
+    <p>
+      Retrieval changes are genuinely hard to judge by reading one answer — a change that
+      fixes the question you are testing routinely breaks two you are not. The application
+      ships with an evaluation harness for exactly this reason. On a test corpus it showed
+      one paraphrased question that <em>no</em> plain configuration retrieved; only rewriting,
+      multiple phrasings and re-ranking together found it. That is not something reading a
+      single answer would ever reveal.
+    </p>
+  </div>
+
+</main>
+
+<aside class="col-lg-3 d-none d-lg-block">
+  <nav class="toc" aria-label="On this page">
+    <p class="control-meta mb-2"><strong>ON THIS PAGE</strong></p>
+    <div class="nav flex-column" id="tocList"></div>
+  </nav>
+</aside>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1">Local LLM Scientific Assistant — documentation for faculty.</p>
+    <p class="mb-0">Runs entirely offline via Ollama. No data leaves your computer.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

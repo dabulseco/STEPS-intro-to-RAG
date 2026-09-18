@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossary · Local LLM Scientific Assistant</title>
+<meta name="description" content="Plain-language definitions of the RAG and LLM terms used throughout this documentation, written for educators.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="siteNav"></div>
+
+<header class="hero">
+  <div class="container">
+    <span class="badge-soft badge-sem mb-3 d-inline-block">Reference</span>
+    <h1>Glossary</h1>
+    <p class="lead mt-3">
+      The vocabulary used across these pages, in plain language. Written to be usable as a
+      handout.
+    </p>
+  </div>
+</header>
+
+<div class="container my-5">
+<div class="row g-5">
+<main class="col-lg-9" id="main">
+
+  <div class="filter-bar">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-6">
+        <label class="visually-hidden" for="filterSearch">Search glossary</label>
+        <input type="search" class="form-control" id="filterSearch" placeholder="Search terms…">
+      </div>
+      <div class="col-md-6">
+        <div class="d-flex flex-wrap gap-2">
+          <button class="filter-btn active" data-filter="all" aria-pressed="true">All</button>
+          <button class="filter-btn" data-filter="core" aria-pressed="false">Core ideas</button>
+          <button class="filter-btn" data-filter="retrieval" aria-pressed="false">Retrieval</button>
+          <button class="filter-btn" data-filter="generation" aria-pressed="false">Generation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p id="noResults" class="is-hidden py-4">No terms match that search.</p>
+
+  <h2 id="terms">Terms</h2>
+
+  <div class="card filterable mb-3" data-tags="core generation">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Large Language Model (LLM)</h3>
+      <p class="mb-0">A system trained to predict what text comes next, on enough material
+      that doing so well requires something resembling understanding. It has no memory
+      between conversations and no access to anything beyond its training data unless you
+      supply it.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="core retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Retrieval-Augmented Generation (RAG)</h3>
+      <p class="mb-0">Searching your documents for relevant passages and giving them to the
+      model along with the question, so its answer is grounded in your material rather than
+      its training data. The "retrieval" half is a search engine; the "generation" half is
+      the language model. Both must work for the answer to be trustworthy.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="core generation">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Hallucination</h3>
+      <p class="mb-0">Fluent, confident output that is not true. It is not a malfunction —
+      the model is doing exactly what it was built to do, producing plausible text. Retrieval
+      reduces it by supplying real information; citations make it detectable by letting you
+      check.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="core generation">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Grounding</h3>
+      <p class="mb-0">Tying an answer to specific supplied evidence. A grounded answer can
+      be checked against a source; an ungrounded one can only be believed or doubted. The
+      distinction is the single most useful idea to convey to students.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Chunk</h3>
+      <p class="mb-0">A passage a document has been cut into — here, roughly 400 words.
+      Chunks are the unit that gets searched and retrieved. This application never lets one
+      span two pages, which is what makes page citations exact.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Embedding</h3>
+      <p class="mb-0">A list of numbers representing the meaning of a piece of text.
+      Passages about similar ideas produce similar numbers even when they share no words,
+      which is what allows searching by meaning rather than by wording.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Vector store</h3>
+      <p class="mb-0">The index holding those numeric representations, able to find the
+      passages closest in meaning to a question. In this application it lives in memory only
+      and is discarded when you close the app.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Semantic search &amp; keyword search</h3>
+      <p class="mb-0"><strong>Semantic</strong> finds passages that mean the same thing as
+      your question, even in different words. <strong>Keyword</strong> finds passages
+      containing your exact terms. Each misses what the other catches, which is why this
+      application runs both.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Hybrid search &amp; rank fusion</h3>
+      <p class="mb-0">Running both search methods and merging their results. Because their
+      scores are not comparable, the merge uses rank <em>positions</em> instead — a passage
+      ranked highly by either method scores well, and one ranked highly by both scores best.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">BM25</h3>
+      <p class="mb-0">The standard keyword-ranking method, used by search engines and
+      library catalogues for decades. It weighs how often your terms appear in a passage
+      against how common those terms are overall, so rare words count for more.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Re-ranking</h3>
+      <p class="mb-0">A second pass that re-scores retrieved passages against the question
+      and reorders them. Search casts a wide net; re-ranking decides what is genuinely best
+      within the catch.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Metadata &amp; pre-filtering</h3>
+      <p class="mb-0">Metadata is what a passage carries besides its text — file name,
+      page, section. Pre-filtering uses it to narrow the search <em>before</em> it runs, for
+      example to a single document.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">HyDE</h3>
+      <p class="mb-0">Hypothetical Document Embeddings. The model invents a plausible answer
+      and that invented text is used as the search key, because answers resemble document
+      passages more closely than questions do. The invention is never shown to you and never
+      used as evidence.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="generation">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Token</h3>
+      <p class="mb-0">The unit models process — roughly ¾ of a word. Common words are one
+      token; unusual ones split into several. Context windows are measured in tokens, which
+      is why a limit of 8,192 does not correspond neatly to a page count.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="generation">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Context window</h3>
+      <p class="mb-0">The total amount of text a model can consider at once, shared between
+      instructions, conversation history, retrieved passages, your question and the answer.
+      Exceeding it means something gets dropped — in poorly built systems, silently.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="generation">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Temperature</h3>
+      <p class="mb-0">How strictly the model favours its most likely next word. Low values
+      give focused, repeatable text; high values give varied, less predictable text. For
+      document questions, low.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="generation">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Top-K &amp; Top-P</h3>
+      <p class="mb-0">Two further limits on which words the model may choose from. Top-K
+      caps the number of candidates; Top-P keeps the smallest group of candidates whose
+      combined probability reaches a threshold. Both overlap with temperature — adjust
+      temperature and leave these alone.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="generation core">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">System prompt</h3>
+      <p class="mb-0">Standing instructions given to the model before the conversation
+      begins — here, who it is writing for and whether it may use knowledge beyond your
+      documents. Rules placed here hold for the whole exchange rather than fading as the
+      conversation grows.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="core">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Local / on-device</h3>
+      <p class="mb-0">The model runs on your own computer rather than a company's servers.
+      Slower than commercial services and typically less capable, but nothing you type or
+      upload leaves the machine — which is what makes it appropriate for student work and
+      unpublished material.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="core retrieval">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Ephemeral index</h3>
+      <p class="mb-0">A search index that exists only while the application is running.
+      Documents must be re-processed each session — a deliberate privacy choice rather than
+      a limitation, since nothing is ever written to disk.</p>
+    </div>
+  </div>
+
+  <div class="card filterable mb-3" data-tags="retrieval generation">
+    <div class="card-body">
+      <h3 class="mt-0 mb-2" style="font-size:1.08rem">Citation verification</h3>
+      <p class="mb-0">Checking that every source marker in an answer refers to a passage
+      that was actually supplied. Asking a model to cite is easy; confirming it did is what
+      makes the citation mean anything.</p>
+    </div>
+  </div>
+
+  <h2 id="handout">Five points for a one-page handout</h2>
+  <ol style="max-width:62ch">
+    <li class="mb-2"><strong>An AI answer is not a source.</strong> It is a summary of something, and the question is always: of what?</li>
+    <li class="mb-2"><strong>"I could not find that" is a good answer.</strong> A system that always answers is not more capable, only less honest.</li>
+    <li class="mb-2"><strong>Check one citation.</strong> Open the cited page and confirm it says what the answer claims. It takes seconds and it is the whole skill.</li>
+    <li class="mb-2"><strong>Retrieval and writing fail differently.</strong> A wrong answer can mean the system searched badly or wrote badly, and the fixes are unrelated.</li>
+    <li class="mb-2"><strong>Settings are choices, not physics.</strong> Someone picked the temperature, the number of passages, the search balance. Different choices give different answers to the same question.</li>
+  </ol>
+
+</main>
+
+<aside class="col-lg-3 d-none d-lg-block">
+  <nav class="toc" aria-label="On this page">
+    <p class="control-meta mb-2"><strong>ON THIS PAGE</strong></p>
+    <div class="nav flex-column" id="tocList"></div>
+  </nav>
+</aside>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1">Local LLM Scientific Assistant — documentation for faculty.</p>
+    <p class="mb-0">Runs entirely offline via Ollama. No data leaves your computer.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

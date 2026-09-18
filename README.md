@@ -71,6 +71,23 @@ A comprehensive Streamlit application for interacting with local Large Language 
   - Context window size (256 - 32,768 tokens)
 - **Separate embedding model selection**: embedding models are detected and listed separately from chat models
 
+## 📚 Documentation Website
+
+A browsable guide written for non-specialists — faculty, students, and anyone who
+needs to understand what a RAG system is doing before relying on it — lives in
+[`docs/`](docs/):
+
+```bash
+open docs/index.html          # macOS
+# or serve it:  cd docs && python3 -m http.server 8000
+```
+
+It documents **every** sidebar control with its range, default and effect; each
+advanced retrieval technique with the problem it solves and what it costs;
+recommended model settings with three presets; and a plain-language glossary.
+The folder is named `docs/` so it can be published free via GitHub Pages
+(Settings → Pages → Deploy from branch → `/docs`).
+
 ## 📁 Project Structure
 
 ```
@@ -79,6 +96,9 @@ ollama_app/
 ├── requirements.txt                # Python dependencies
 ├── README.md                       # This file
 ├── ADVANCED_RAG_PLAN.md            # Design and rationale for the retrieval engine
+├── docs/                           # Documentation website (Bootstrap 5, no build step)
+│   ├── index.html … glossary.html  # Six pages: concepts, controls, techniques, settings
+│   └── assets/                     # Stylesheet + navigation/filtering script
 ├── config/
 │   ├── default_templates.json      # Seed templates restored by "Reset to Defaults" (empty by default)
 │   └── question_templates.json     # User's custom templates (auto-created)

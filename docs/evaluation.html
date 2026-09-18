@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evaluation · Local LLM Scientific Assistant</title>
+<meta name="description" content="How the LLM-as-judge evaluator works: the five metrics it scores, why a separate judge model matters, and how to export results.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="siteNav"></div>
+
+<header class="hero">
+  <div class="container">
+    <span class="badge-soft badge-sem mb-3 d-inline-block">Feature guide</span>
+    <h1>Evaluating answers with an LLM-as-judge</h1>
+    <p class="lead mt-3">
+      A separate language model scores each of your answers against five quality metrics.
+      This page explains what those metrics are, why a second model is involved, and how to
+      export the results for further analysis.
+    </p>
+  </div>
+</header>
+
+<div class="container my-5">
+<div class="row g-5">
+<main class="col-lg-9" id="main">
+
+  <h2 id="what">What this feature does</h2>
+  <p>
+    The application ships with a built-in evaluator based on the
+    <em>LLM-as-judge</em> pattern: instead of trusting your own model to grade
+    its own answers, you pick a second local model and ask <em>that</em> model to
+    score each answer on five well-defined criteria. Each criterion comes back
+    with a 1&ndash;5 rating and a written explanation.
+  </p>
+  <p>
+    This is useful in three situations in particular:
+  </p>
+  <ul>
+    <li>
+      You want to know whether the answer actually came from the documents you
+      uploaded, or whether the model slipped in something from its own training.
+    </li>
+    <li>
+      You are comparing two retrieval configurations &mdash; hybrid vs. dense-only,
+      different chunk sizes, different embedding models &mdash; and want a
+      quantitative signal that "answer quality went up."
+    </li>
+    <li>
+      You are teaching and want to demonstrate <em>what good retrieval looks
+      like</em> by showing students the rubric an evaluator applies.
+    </li>
+  </ul>
+
+  <div class="callout callout-teach">
+    <span class="callout-title">A signal, not ground truth</span>
+    <p>
+      An LLM-as-judge is itself a language model and inherits the same caveats as
+      the model that produced the answer. It is at its best catching obvious
+      failures &mdash; an answer that ignored the documents, a citation to a
+      nonexistent source, a response that never addresses the question. It is
+      least reliable on subtle judgments where reasonable readers disagree.
+      Treat scores as a relative signal across configurations, not as an
+      absolute verdict.
+    </p>
+  </div>
+
+  <h2 id="metrics">The five metrics</h2>
+  <p>
+    Each metric is scored on a 1&ndash;5 scale. The judge is given the question,
+    the retrieved context, and the answer; it returns a JSON verdict with
+    <code>steps</code>, <code>explanation</code>, <code>evaluation</code>, and
+    <code>rating</code>. Five metrics are run in a fixed order; together they
+    cover the failure modes most worth catching in a RAG system.
+  </p>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="h6 mb-2">1. Groundedness</h3>
+          <p class="small mb-0">
+            <em>The answer should be derived only from the information presented
+            in the context.</em> Catches the most common failure: an answer that
+            draws on the model's general knowledge instead of the documents you
+            uploaded. A high rating means every claim in the answer traces back to
+            something in the retrieved passages.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="h6 mb-2">2. Relevance</h3>
+          <p class="small mb-0">
+            <em>How well the answer addresses the main aspects of the question,
+            based on the context.</em> An answer can be perfectly grounded in the
+            documents and still be useless if it answers the wrong question.
+            Relevance checks that the answer covers what was actually asked.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="h6 mb-2">3. Faithfulness</h3>
+          <p class="small mb-0">
+            <em>The answer can be directly inferred based on the context.</em>
+            Stricter than groundedness: every statement must be a fair reading
+            of what the documents say, not a creative paraphrase that adds
+            information. Useful for catching subtle hallucinations where a
+            statement is "consistent with" the context but not actually stated
+            there.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="h6 mb-2">4. Context precision</h3>
+          <p class="small mb-0">
+            <em>Verify if the context was useful in arriving at the given
+            answer.</em> This judges the retrieval step, not just the
+            generation. If the cited passages are unrelated to the question, a
+            high groundedness score is suspicious &mdash; the model may have
+            cherry-picked from irrelevant material.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="h6 mb-2">5. Context recall</h3>
+          <p class="small mb-0">
+            <em>Analyze each sentence in the answer and classify if the
+            sentence can be attributed to the given context or not.</em>
+            Sentence-level attribution. A high score means every sentence in the
+            answer has a basis in the retrieved passages; a low score flags
+            unsupported sentences for closer inspection.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="mt-3">
+    <strong>Statements that the documents lack something are not scored.</strong>
+    When retrieval comes up short, the answer often says so &mdash; for example,
+    &ldquo;The provided documents do not list specific metrics.&rdquo; A judge
+    left to itself marks that sentence as unsupported, because the context never
+    states its own gaps, and lowers the score for what is an honest answer. Every
+    metric therefore tells the judge to ignore such statements and rate only the
+    rest of the answer. If the answer consists <em>only</em> of such a statement,
+    the judge instead checks that the documents really do lack the requested
+    information.
+  </p>
+
+  <h2 id="judge">Why a separate judge model</h2>
+  <p>
+    Self-evaluation has a bias problem. A model asked to grade its own answer
+    has an incentive &mdash; not a deliberate one, but a statistical one &mdash;
+    to be lenient. Asking a <em>different</em> model removes that pressure and
+    gives the rating more independence from the answer.
+  </p>
+  <p>
+    The application does not pick a judge model for you. The sidebar has a
+    <strong>Judge model</strong> dropdown that lists every chat model you have
+    installed locally; you choose one explicitly. If you select the same model
+    that generated the answer, a small caption warns that self-evaluation bias
+    is more likely.
+  </p>
+  <p>
+    Practical recommendations:
+  </p>
+  <ul>
+    <li>
+      Use a model at least as capable as your answer model &mdash; a weaker
+      judge cannot reliably critique a stronger answer.
+    </li>
+    <li>
+      Use a different model family when possible. Two models from the same
+      training lineage share blind spots; a different lineage reduces that.
+    </li>
+    <li>
+      Re-run with two judges on the same answer when the rating matters. If
+      both judges agree, the score is robust; if they disagree, look at the
+      explanations, not just the numbers.
+    </li>
+  </ul>
+
+  <h2 id="cache">The cache key and judge comparison</h2>
+  <p>
+    Every evaluation is stored in session state under a key built from three
+    things: the question, the answer, and the judge model. The key looks like
+    <code>&lt;12-char-hash&gt;__&lt;judge-model&gt;</code>.
+  </p>
+  <p>
+    The hash part is the same for the same Q&amp;A pair; the judge-model part
+    differs when you change judges. This means a single answer can accumulate
+    several evaluations under different judges, all visible in the export.
+    Switching the dropdown and clicking <em>Run evaluation</em> again does not
+    overwrite the previous one &mdash; it produces a new cached entry.
+  </p>
+  <p>
+    The same Q&amp;A evaluated by two different judges is a built-in way to
+    triangulate. The exported CSV records both, and the HTML report shows a
+    card per judge, so you can see where they agree and where they diverge.
+  </p>
+
+  <h2 id="lifecycle">Session-only by design</h2>
+  <p>
+    Evaluations live in the browser session and are cleared when the app
+    restarts. This is deliberate: the cache is intentionally not a research
+    database, and persisting it would create the illusion that older
+    evaluations are still comparable to today's answers after you have changed
+    retrieval settings, models, or even the embedding model.
+  </p>
+  <p>
+    Three export buttons under <strong>📤 Export evaluations</strong> in the
+    sidebar convert the current session's evaluations into a file you control:
+  </p>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="h6 mb-2">CSV (long-form)</h3>
+          <p class="small mb-0">
+            One row per metric. Includes the full question and answer text so
+            you can analyze, pivot, or plot the results in a spreadsheet or
+            pandas without needing to recover anything from the chat history.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="h6 mb-2">Markdown</h3>
+          <p class="small mb-0">
+            Readable summary grouped by question, with one ratings table per
+            judge model. Suited for pasting into notes, sharing with
+            collaborators, or committing to a repository.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h3 class="h6 mb-2">HTML</h3>
+          <p class="small mb-0">
+            Standalone Bootstrap document with the question, the answer, and a
+            card per metric per judge. Opens in any browser and prints cleanly.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="mt-3">
+    The export buttons appear only after at least one evaluation has been
+    cached. There is no automatic export &mdash; the application never writes
+    evaluation results to disk on its own.
+  </p>
+
+  <h2 id="cost">What it costs</h2>
+  <p>
+    Five judge calls per evaluation. On a typical 7B model running on a
+    consumer GPU, expect 30&ndash;90 seconds per evaluation; smaller models
+    finish faster but produce noisier scores.
+  </p>
+  <p>
+    Cached evaluations are free on re-render &mdash; if you close and reopen
+    the <em>🔬 Evaluate this answer</em> expander, the saved report comes back
+    without re-calling the judge.
+  </p>
+
+  <h2 id="caveats">Caveats specific to small local models</h2>
+  <ul>
+    <li>
+      Smaller judges (3B&ndash;7B parameters) frequently wrap their JSON output
+      in code fences or add prose around it. The evaluator handles this with a
+      three-stage parse fallback &mdash; direct parse, fence stripping, regex
+      extraction &mdash; and shows the raw output if all three fail.
+    </li>
+    <li>
+      Judge quality drops noticeably below 8B parameters. The default-sized
+      judge model is still yours to choose, but a 13B+ judge produces more
+      stable ratings.
+    </li>
+    <li>
+      Ratings from different judges are not on a shared scale. A "5/5" from
+      one judge may correspond to a "4/5" from another. Compare within a
+      judge, not across them.
+    </li>
+  </ul>
+
+  <p class="mt-4">
+    <a href="techniques.html" class="btn filter-btn">← Back to advanced techniques</a>
+    <a href="glossary.html" class="btn filter-btn">Glossary →</a>
+  </p>
+
+</main>
+
+<aside class="col-lg-3 d-none d-lg-block">
+  <nav class="toc" aria-label="On this page">
+    <p class="control-meta mb-2"><strong>ON THIS PAGE</strong></p>
+    <div class="nav flex-column" id="tocList"></div>
+  </nav>
+</aside>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1">Local LLM Scientific Assistant — documentation for faculty.</p>
+    <p class="mb-0">Runs entirely offline via Ollama. No data leaves your computer.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>
