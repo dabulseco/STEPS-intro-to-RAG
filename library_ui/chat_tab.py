@@ -9,7 +9,7 @@ from rag_core.conversations import ConversationStore, Exchange
 from rag_core.library import Library
 from utils.html_export import build_conversation_html, build_pair_html, safe_filename
 
-from . import state
+from . import settings_tabs, state
 
 
 def render_sidebar(library: Library) -> None:
@@ -65,20 +65,12 @@ def _check_chat_model(library: Library, status: state.OllamaStatus) -> bool:
         return False
     if state.model_installed(settings.chat_model, status.chat_models):
         return True
-    if not status.chat_models:
-        st.error("No chat models are installed in Ollama. Install one, e.g. "
-                 "`ollama pull llama3.1`.")
-        return False
-    if settings.chat_model:
+    if settings.chat_model and status.chat_models:
         st.warning(f"This chatbot's model `{settings.chat_model}` is not installed. "
                    "Pick another to continue.")
-    else:
+    elif status.chat_models:
         st.info("Choose a chat model for this chatbot.")
-    choice = st.selectbox("Chat model", status.chat_models, key="pick_chat_model")
-    if st.button("Use this model"):
-        settings.chat_model = choice
-        library.save_info()
-        st.rerun()
+    settings_tabs.render_chat_model_picker(library, status, key="chat_chat_model")
     return False
 
 

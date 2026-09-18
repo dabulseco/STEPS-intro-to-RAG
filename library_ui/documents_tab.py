@@ -1,13 +1,13 @@
 """Documents tab: check → review → add, the document table, and edits."""
 
-from typing import Callable, List, Optional
+from typing import Callable, List, NamedTuple, Optional
 
 import streamlit as st
 
 from rag_core.library import CheckResult, Library
 from utils.document_processor import DocumentProcessor
 
-from . import state
+from . import settings_tabs, state
 
 _NEW_COLLECTION = "➕ New collection…"
 _STATUS_ICON = {
@@ -17,11 +17,18 @@ _STATUS_ICON = {
 _ACTIONS = {"skip": "Skip", "replace": "Replace existing", "keep_both": "Keep both"}
 
 
-def render(library: Library, status: state.OllamaStatus, ready: bool,
+class Blocked(NamedTuple):
+    """Why documents cannot be added right now."""
+
+    kind: str       # 'ollama' | 'embedding' | 'chat_model'
+    message: str
+
+
+def render(library: Library, status: state.OllamaStatus, blocked: Optional[Blocked],
            ask_llm: Optional[Callable[[str], str]]) -> None:
     st.header("📄 Documents")
     _flash()
-    _render_add(library, ready, ask_llm)
+    _render_add(library, status, blocked, ask_llm)
     st.markdown("---")
     _render_table(library)
 
@@ -36,12 +43,18 @@ def _flash() -> None:
 # -----------------------------------------------------------------------------
 # Adding
 # -----------------------------------------------------------------------------
-def _render_add(library: Library, ready: bool, ask_llm) -> None:
+def _render_add(library: Library, status: state.OllamaStatus,
+                blocked: Optional[Blocked], ask_llm) -> None:
     st.subheader("Add documents")
-    if not ready:
-        st.info("Adding documents needs Ollama running with this library's "
-                "embedding model installed (see the message above).")
+    if blocked is not None:
+        st.warning(blocked.message)
+        if blocked.kind == "chat_model":
+            settings_tabs.render_chat_model_picker(library, status, key="docs_chat_model")
         return
+    if ask_llm is None:
+        st.caption("No chat model is set, so titles and authors come only from the "
+                   "files' stored properties. Choose a chat model in Chatbot settings "
+                   "for better details.")
 
     pending: Optional[List[CheckResult]] = st.session_state.get("pending_checks")
     if pending is None:

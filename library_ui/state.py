@@ -76,6 +76,21 @@ def model_installed(name: str, installed: List[str]) -> bool:
     return bool(name) and _base(name) in {_base(m) for m in installed}
 
 
+def is_cloud_model(name: str) -> bool:
+    """Ollama cloud models ('…:cloud', '…-cloud') run remotely, not on this computer."""
+    tag = name.rsplit(":", 1)[-1] if ":" in name else ""
+    return tag == "cloud" or tag.endswith("-cloud")
+
+
+def local_first(models: List[str]) -> List[str]:
+    """Local models first, so defaults never quietly send documents off the computer."""
+    return [m for m in models if not is_cloud_model(m)] + [m for m in models if is_cloud_model(m)]
+
+
+def model_label(name: str) -> str:
+    return f"{name}  ☁️ cloud — text leaves this computer" if is_cloud_model(name) else name
+
+
 @st.cache_data(ttl=15, show_spinner=False)
 def _fetch_status() -> Tuple[List[str], List[str], Optional[str]]:
     try:
@@ -88,7 +103,7 @@ def _fetch_status() -> Tuple[List[str], List[str], Optional[str]]:
 
 def ollama_status() -> OllamaStatus:
     chats, embeds, error = _fetch_status()
-    return OllamaStatus(chats, embeds, error)
+    return OllamaStatus(local_first(chats), local_first(embeds), error)
 
 
 # -----------------------------------------------------------------------------

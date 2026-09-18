@@ -62,6 +62,11 @@ class TestLifecycle:
         assert (path / "library.db").exists()
         assert [i.name for _, i in lib.list_libraries()] == ["BIOL 201"]
 
+    def test_create_records_chat_model(self, root):
+        path = lib.create_library("With Model", "m", chat_model="gemma4:e4b")
+        assert lib.read_info(path).chatbot.chat_model == "gemma4:e4b"
+        assert lib.read_info(lib.create_library("No Model", "m")).chatbot.chat_model == ""
+
     def test_slug_collisions_get_suffix(self, root):
         first = lib.create_library("Cell Bio", "m")
         second = lib.create_library("cell bio!", "m")

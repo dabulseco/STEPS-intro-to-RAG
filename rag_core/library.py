@@ -196,6 +196,7 @@ def create_library(
     embedding_model: str,
     contextual_headers: bool = False,
     root: Optional[Path] = None,
+    chat_model: str = "",
 ) -> Path:
     """Create an empty library folder and return its path."""
     root = Path(root) if root else library_root()
@@ -210,7 +211,7 @@ def create_library(
         embedding_model=embedding_model,
         created_at=_now(),
         contextual_headers=contextual_headers,
-        chatbot=ChatbotSettings(name=name.strip()),
+        chatbot=ChatbotSettings(name=name.strip(), chat_model=chat_model.strip()),
     )
     write_info(path, info)
     LibraryDB(path / "library.db").close()

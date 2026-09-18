@@ -80,6 +80,32 @@ class TestApp:
         at = run(at)
         assert [i.name for _, i in lib.list_libraries()] == ["Cell Bio"]
         assert at.sidebar.selectbox[0].value == str(env / "cell-bio")
+        # The form asks for a chat model, defaulting to an installed one.
+        assert lib.read_info(env / "cell-bio").chatbot.chat_model == "stub-chat"
+
+    def test_blocked_add_names_the_real_reason_and_offers_a_fix(self, env):
+        path = lib.create_library("Headers", "stub-embed", contextual_headers=True)
+        at = run()
+        at.sidebar.radio(key="tab").set_value("📄 Documents")
+        at = run(at)
+        page = texts(at)
+        assert "needs a chat model" in page
+        assert "embedding model installed" not in page
+        assert not any(b.label == "Check files" for b in at.button)
+
+        next(b for b in at.button if b.label == "Use this model").click()
+        at = run(at)
+        assert lib.read_info(path).chatbot.chat_model == "stub-chat"
+        assert any(b.label == "Check files" for b in at.button)
+
+    def test_add_blocked_when_ollama_down_says_so(self, env, monkeypatch):
+        seeded_library()
+        monkeypatch.setattr(state, "ollama_status",
+                            lambda: state.OllamaStatus(error="connection refused"))
+        at = run()
+        at.sidebar.radio(key="tab").set_value("📄 Documents")
+        at = run(at)
+        assert "Start Ollama to add documents" in texts(at)
 
     def test_documents_tab_lists_documents(self, env):
         seeded_library()
@@ -138,3 +164,12 @@ class TestApp:
         for tab in ("⚙️ Chatbot settings", "🗄️ Library settings"):
             at.sidebar.radio(key="tab").set_value(tab)
             at = run(at)
+
+
+def test_cloud_models_listed_last_and_labelled():
+    models = ["gemma4:31b-cloud", "minimax-m3:cloud", "gemma4:e4b", "llama3.1:latest"]
+    assert state.local_first(models) == ["gemma4:e4b", "llama3.1:latest",
+                                         "gemma4:31b-cloud", "minimax-m3:cloud"]
+    assert "cloud" in state.model_label("minimax-m3:cloud")
+    assert state.model_label("gemma4:e4b") == "gemma4:e4b"
+    assert not state.is_cloud_model("nomic-embed-text:latest")

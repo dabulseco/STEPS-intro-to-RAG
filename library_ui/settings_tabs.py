@@ -46,6 +46,19 @@ def render_create_form(status: state.OllamaStatus) -> Optional[Path]:
                 help="No embedding models found. Install one with "
                      f"`ollama pull {DEFAULT_EMBED_MODEL}`.",
             )
+        if status.chat_models:
+            chat_model = st.selectbox(
+                "Chat model", status.chat_models, format_func=state.model_label,
+                help="Answers questions, and reads each document's first page to fill "
+                     "in its title, authors and year. Can be changed later in "
+                     "Chatbot settings.",
+            )
+        else:
+            chat_model = st.text_input(
+                "Chat model", value="",
+                help="No chat models found. Install one, e.g. `ollama pull llama3.1`, "
+                     "or set it later in Chatbot settings.",
+            )
         headers = st.checkbox(
             "Add contextual headers to chunks (slow)",
             value=False,
@@ -63,8 +76,27 @@ def render_create_form(status: state.OllamaStatus) -> Optional[Path]:
         if not embed_model.strip():
             st.error("Choose an embedding model.")
             return None
-        return create_library(name.strip(), embed_model.strip(), contextual_headers=headers)
+        return create_library(name.strip(), embed_model.strip(),
+                              contextual_headers=headers, chat_model=chat_model or "")
     return None
+
+
+# -----------------------------------------------------------------------------
+# Chat model picker (used wherever a missing chat model blocks progress)
+# -----------------------------------------------------------------------------
+def render_chat_model_picker(library: Library, status: state.OllamaStatus, key: str) -> None:
+    """Pick an installed chat model and save it to the library, in place."""
+    if not status.chat_models:
+        st.error("No chat models are installed in Ollama. Install one, e.g. "
+                 "`ollama pull llama3.1`.")
+        return
+    c1, c2 = st.columns([3, 1])
+    choice = c1.selectbox("Chat model", status.chat_models, key=f"{key}_model",
+                          label_visibility="collapsed", format_func=state.model_label)
+    if c2.button("Use this model", key=f"{key}_save", type="primary"):
+        library.info.chatbot.chat_model = choice
+        library.save_info()
+        st.rerun()
 
 
 # -----------------------------------------------------------------------------
@@ -103,7 +135,8 @@ def render_chatbot_settings(library: Library, status: state.OllamaStatus) -> Non
         st.subheader("Model")
         if chat_models:
             chat_model = st.selectbox("Chat model", chat_models,
-                                      index=_index(chat_models, s.chat_model))
+                                      index=_index(chat_models, s.chat_model),
+                                      format_func=state.model_label)
         else:
             chat_model = st.text_input("Chat model", value=s.chat_model,
                                        help="Ollama is not reachable; type the model name.")

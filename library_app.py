@@ -114,17 +114,20 @@ if tab == TABS[0]:
     chat_tab.render(library, status, ready=embed_ok)
 
 elif tab == TABS[1]:
-    add_ready = embed_ok
-    if embed_ok and not chat_ok:
-        if info.contextual_headers:
-            st.warning("This library adds contextual headers, which needs a chat "
-                       "model. Choose one in Chatbot settings before adding documents.")
-            add_ready = False
-        else:
-            st.info("No chat model is set, so titles and authors will come only from "
-                    "the files' stored properties. Choose a chat model in Chatbot "
-                    "settings for better details.")
-    documents_tab.render(library, status, add_ready, ask_llm)
+    # Why adding is blocked, if it is -- shown on the tab with a way to fix it.
+    if not status.available:
+        blocked = documents_tab.Blocked("ollama", "Start Ollama to add documents.")
+    elif not embed_ok:
+        blocked = documents_tab.Blocked(
+            "embedding", f"Install this library's embedding model first: "
+                         f"`ollama pull {info.embedding_model}`.")
+    elif info.contextual_headers and not chat_ok:
+        blocked = documents_tab.Blocked(
+            "chat_model", "This library adds contextual headers to every chunk, which "
+                          "needs a chat model. Choose one to start adding documents:")
+    else:
+        blocked = None
+    documents_tab.render(library, status, blocked, ask_llm)
 
 elif tab == TABS[2]:
     settings_tabs.render_chatbot_settings(library, status)
