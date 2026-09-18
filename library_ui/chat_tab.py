@@ -1,6 +1,8 @@
 """Chat tab and the conversation list in the sidebar."""
 
-from typing import Optional
+import datetime
+import re
+from typing import List, Optional, Sequence, Tuple
 
 import streamlit as st
 
@@ -47,17 +49,16 @@ def render(library: Library, status: state.OllamaStatus, ready: bool) -> None:
 
     exchanges = conversations.exchanges(active) if active is not None else []
     if active is not None:
-        _render_manage(conversations, active, exchanges, settings)
+        _render_manage(library, conversations, active, exchanges, settings)
     for exchange in exchanges:
         _render_exchange(exchange)
     if exchanges:
         # Where people look once they have finished asking: below the last answer.
-        title = next(c.title for c in conversations.list() if c.conversation_id == active)
+        html_doc, filename = conversation_export(library.info.name, exchanges, settings)
         st.download_button(
-            "⬇️ Download full conversation (HTML)",
-            _conversation_html(title, exchanges, settings).encode("utf-8"),
-            file_name=safe_filename(title or "conversation"),
-            mime="text/html", key="dl_full_conversation", type="primary",
+            "⬇️ Download full conversation (HTML)", html_doc.encode("utf-8"),
+            file_name=filename, mime="text/html", key="dl_full_conversation",
+            type="primary",
         )
 
     pending = st.session_state.pop("pending_question", None)
@@ -83,7 +84,8 @@ def _check_chat_model(library: Library, status: state.OllamaStatus) -> bool:
     return False
 
 
-def _render_manage(conversations: ConversationStore, active: int, exchanges, settings) -> None:
+def _render_manage(library: Library, conversations: ConversationStore, active: int,
+                   exchanges, settings) -> None:
     summary = next(c for c in conversations.list() if c.conversation_id == active)
     with st.expander(f"Manage “{summary.title}”"):
         with st.form(f"rename_conv_{active}"):
@@ -92,12 +94,9 @@ def _render_manage(conversations: ConversationStore, active: int, exchanges, set
                 conversations.rename(active, title)
                 st.rerun()
         if exchanges:
-            st.download_button(
-                "⬇️ Download conversation (HTML)",
-                _conversation_html(summary.title, exchanges, settings).encode("utf-8"),
-                file_name=safe_filename(summary.title or "conversation"),
-                mime="text/html",
-            )
+            html_doc, filename = conversation_export(library.info.name, exchanges, settings)
+            st.download_button("⬇️ Download conversation (HTML)", html_doc.encode("utf-8"),
+                               file_name=filename, mime="text/html")
         sure = st.checkbox("I want to delete this conversation", key=f"del_ok_{active}")
         if st.button("Delete conversation", disabled=not sure):
             conversations.delete(active)
@@ -105,11 +104,31 @@ def _render_manage(conversations: ConversationStore, active: int, exchanges, set
             st.rerun()
 
 
-def _conversation_html(title: str, exchanges, settings) -> str:
-    return build_conversation_html(
+def conversation_export(
+    library_name: str,
+    exchanges: Sequence[Exchange],
+    settings,
+    now: Optional[datetime.datetime] = None,
+) -> Tuple[str, str]:
+    """
+    (html, filename) for a full-conversation download.
+
+    Named "<library> — <date time>" rather than after the first question, with
+    the chat model(s) that answered listed directly below the title.
+    """
+    now = now or datetime.datetime.now()
+    title = f"{library_name} — {now:%Y-%m-%d %H:%M}"
+    stem = re.sub(r"\s+", "-", library_name.strip()) or "conversation"
+    filename = safe_filename(f"{stem}_{now:%Y-%m-%d_%H%M}")
+    models: List[str] = []
+    for e in exchanges:
+        if e.chat_model and e.chat_model not in models:
+            models.append(e.chat_model)
+    html_doc = build_conversation_html(
         [(e.question, e.answer) for e in exchanges], title=title,
-        perspective=settings.perspective, audience=settings.audience,
+        perspective=settings.perspective, audience=settings.audience, models=models,
     )
+    return html_doc, filename
 
 
 def _render_exchange(exchange: Exchange) -> None:

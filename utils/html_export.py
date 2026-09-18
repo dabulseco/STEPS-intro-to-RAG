@@ -315,7 +315,7 @@ def build_pair_html(index: int, user_text: str, ai_text: str,
 
 def build_conversation_html(history: list, title: str = "Conversation Transcript",
                            perspective: str = None, audience: str = None,
-                           evaluation_html: list = None) -> str:
+                           evaluation_html: list = None, models: list = None) -> str:
     """
     Full conversation HTML document.
     
@@ -326,11 +326,18 @@ def build_conversation_html(history: list, title: str = "Conversation Transcript
         audience: Intended audience (optional)
         evaluation_html: Pre-rendered evaluation cards, parallel to
             `history`; "" entries mean that Q&A was not evaluated (optional)
+        models: Chat model(s) that produced the answers, shown directly
+            below the title (optional)
         
     Returns:
         Complete HTML document string
     """
     evaluation_html = evaluation_html or []
+    model_html = ""
+    if models:
+        label = "Model" if len(models) == 1 else "Models"
+        model_html = (f'<p class="mb-1"><strong>{label}:</strong> '
+                      f'{html.escape(", ".join(models))}</p>')
     created_at = datetime.datetime.now().isoformat()
     
     # Add context info if available
@@ -375,6 +382,7 @@ def build_conversation_html(history: list, title: str = "Conversation Transcript
 <div class="container py-4">
   <header class="mb-4">
     <h1 class="h3">{html.escape(title)}</h1>
+    {model_html}
     <p class="text-muted mb-0">Exported: {html.escape(created_at)}</p>
     {context_html}
   </header>
