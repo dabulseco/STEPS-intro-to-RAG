@@ -88,16 +88,50 @@ recommended model settings with three presets; and a plain-language glossary.
 The folder is named `docs/` so it can be published free via GitHub Pages
 (Settings → Pages → Deploy from branch → `/docs`).
 
+## 🗂️ Persistent Library App
+
+A second, separate app — `library_app.py` — keeps documents **between sessions**.
+The main app (`app.py`) is unchanged and still forgets everything when closed.
+
+```bash
+python -m streamlit run library_app.py
+```
+
+- **Libraries**: named collections of documents, stored on your computer. Reopen
+  one and ask questions immediately — no re-uploading or re-embedding.
+- **Duplicate detection**: re-uploading a file (or the same text under another
+  name) is skipped; the same DOI or title + year asks whether to skip, replace or
+  keep both.
+- **Publication details**: title, authors, year, journal and DOI per document,
+  read from the DOI in the text, your chat model and the file's properties — all
+  offline. Editable if wrong.
+- **A chatbot per library**: chat model, perspective/audience, retrieval settings
+  and custom instructions are saved with the library. Re-ranking is on by default.
+- **Saved conversations**: listed in the sidebar; resume, rename, delete or export
+  to HTML. Each answer keeps copies of the passages it cited.
+- **Not included**: answer evaluation and question templates (use the main app).
+
+**Storage.** Each library is a folder in `libraries/` (set `RAG_LIBRARY_DIR` to
+keep them elsewhere). The folder holds the documents' extracted **text** and your
+conversations, but not the original files. Back a library up by copying its
+folder while the app is closed. `libraries/` is git-ignored so it can never be
+pushed by accident. A library can be open in only one running copy of the app.
+
+Sized for roughly 50–500 documents per library. Full guide:
+[`docs/libraries.html`](docs/libraries.html).
+
 ## 📁 Project Structure
 
 ```
 ollama_app/
 ├── app.py                          # Streamlit UI (view layer only)
+├── library_app.py                  # Persistent Library App (saved libraries + chats)
+├── library_ui/                     # Library App screens: chat, documents, settings
 ├── requirements.txt                # Python dependencies
 ├── README.md                       # This file
 ├── ADVANCED_RAG_PLAN.md            # Design and rationale for the retrieval engine
 ├── docs/                           # Documentation website (Bootstrap 5, no build step)
-│   ├── index.html … glossary.html  # Six pages: concepts, controls, techniques, settings
+│   ├── index.html … glossary.html  # Concepts, controls, techniques, settings, evaluation, libraries
 │   └── assets/                     # Stylesheet + navigation/filtering script
 ├── config/
 │   ├── default_templates.json      # Seed templates restored by "Reset to Defaults" (empty by default)
@@ -113,9 +147,17 @@ ollama_app/
 │   ├── context_assembler.py        # Token-budgeted context packing + citations
 │   ├── citations.py                # Citation verification
 │   ├── enrichment.py               # Optional ingest-time contextual headers
-│   └── pipeline.py                 # Orchestrator -- the single answer path
+│   ├── pipeline.py                 # Orchestrator -- the single answer path
+│   ├── eval.py, evaluator_prompts.py # LLM-as-judge answer evaluation (main app)
+│   ├── persistent_store.py         # On-disk Chroma store (Library App)
+│   ├── library_db.py               # SQLite: documents, chunks (Library App)
+│   ├── library.py, library_lock.py # Libraries: create/open, duplicates, recovery, re-embed
+│   ├── doc_metadata.py             # Fingerprints, DOI, publication details
+│   ├── conversations.py            # Saved conversations
+│   └── chat_session.py             # Answering against a library
 ├── tests/
-│   └── test_rag_core.py            # Unit tests (no Ollama required)
+│   ├── test_rag_core.py            # Unit tests (no Ollama required)
+│   └── test_library*.py, …         # Library App tests (no Ollama required)
 ├── tools/
 │   └── eval_retrieval.py           # Retrieval evaluation harness
 └── utils/
@@ -126,8 +168,8 @@ ollama_app/
 ```
 
 `rag_core/` imports no Streamlit and makes no assumption about how long the
-vector store lives. Making it persistent is a one-line change in
-`rag_core/store.py` (`EphemeralClient` -> `PersistentClient`).
+vector store lives: the main app uses `EphemeralRagStore`, the Library App
+`PersistentRagStore`, and both go through the same `pipeline.py`.
 
 ## 🚀 Installation
 
@@ -345,6 +387,7 @@ Edit `utils/prompt_builder.py`:
 
 - **All processing is LOCAL**: No data sent to external servers
 - **Templates stored locally**: JSON files in `config/` directory
+- **Main app writes no documents to disk**; the Library App stores extracted text and conversations in `libraries/` (git-ignored)
 - **No telemetry**: Application doesn't track usage or collect analytics
 - **Export control**: You control all exported HTML files
 

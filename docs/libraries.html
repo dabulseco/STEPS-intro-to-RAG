@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Libraries · Local LLM Scientific Assistant</title>
+<meta name="description" content="The persistent Library app: keep documents between sessions, turn each library into a configured chatbot, and resume saved conversations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="siteNav"></div>
+
+<header class="hero">
+  <div class="container">
+    <span class="badge-soft badge-sem mb-3 d-inline-block">Companion app</span>
+    <h1>Libraries: documents that stay between sessions</h1>
+    <p class="lead mt-3">
+      The main application forgets everything when you close it. The Library app is a
+      second, separate application that keeps a collection of documents on your computer
+      and turns it into a chatbot you can come back to &mdash; with its settings and
+      conversations intact.
+    </p>
+  </div>
+</header>
+
+<div class="container my-5">
+<div class="row g-5">
+<main class="col-lg-9" id="main">
+
+  <h2 id="which">Which app should I use?</h2>
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card h-100"><div class="card-body">
+        <h3 class="mt-0" style="font-size:1.05rem">Main app &mdash; <code>app.py</code></h3>
+        <p class="mb-0" style="font-size:0.94rem">
+          Upload, ask, discard. Nothing is written to disk, so it suits sensitive
+          documents and one-off questions. Includes answer evaluation and question
+          templates.
+        </p>
+      </div></div>
+    </div>
+    <div class="col-md-6">
+      <div class="card h-100"><div class="card-body">
+        <h3 class="mt-0" style="font-size:1.05rem">Library app &mdash; <code>library_app.py</code></h3>
+        <p class="mb-0" style="font-size:0.94rem">
+          Build a library once, then chat with it across many sessions. Suits a
+          course's readings or a project's papers &mdash; roughly 50 to 500 documents.
+        </p>
+      </div></div>
+    </div>
+  </div>
+  <p class="mt-3">
+    Both use the same retrieval engine, so answers are found and cited in exactly the
+    same way. Run the Library app with:
+  </p>
+  <pre><code>python -m streamlit run library_app.py</code></pre>
+
+  <h2 id="kept">What a library keeps</h2>
+  <ul>
+    <li><strong>The documents' text and search index</strong> &mdash; so a library opens
+      in seconds and you can ask questions immediately, without re-uploading.</li>
+    <li><strong>Publication details</strong> &mdash; title, authors, year, journal and DOI
+      for each document, shown as a table so you can see what the library contains.</li>
+    <li><strong>Chatbot settings</strong> &mdash; the chat model, perspective and audience,
+      retrieval settings, and your own custom instructions.</li>
+    <li><strong>Conversations</strong> &mdash; every question and answer, with copies of
+      the passages it cited, so you can resume a chat later.</li>
+  </ul>
+  <div class="callout callout-teach">
+    <span class="callout-title">What it does not keep</span>
+    The original files. The library holds the text extracted from them, which search
+    needs, but not the PDF, Word or PowerPoint file itself. Answer evaluation is not
+    part of the Library app; use the main app for that.
+  </div>
+
+  <h2 id="adding">Adding documents</h2>
+  <p>Adding happens in two steps on the <strong>Documents</strong> tab.</p>
+  <ol>
+    <li>
+      <strong>Check.</strong> Choose files and a collection. The app reads each file and
+      compares it with what is already in the library. A review table shows the result
+      for every file.
+    </li>
+    <li>
+      <strong>Add.</strong> The accepted files are processed one at a time: details are
+      read, the text is split into passages, and each passage is embedded. Each file is
+      saved as soon as it is done, so an interruption loses only the file in progress.
+      Keep the browser tab open until it finishes.
+    </li>
+  </ol>
+
+  <h3 id="duplicates">How duplicates are recognised</h3>
+  <table class="table">
+    <thead><tr><th>Match</th><th>What happens</th></tr></thead>
+    <tbody>
+      <tr><td>The exact same file</td><td>Skipped automatically</td></tr>
+      <tr><td>The same text in a different file (renamed or re-saved)</td><td>Skipped automatically</td></tr>
+      <tr><td>The same DOI</td><td>You choose: skip, replace the existing one, or keep both</td></tr>
+      <tr><td>The same title and year (no DOI)</td><td>You choose: skip, replace, or keep both</td></tr>
+      <tr><td>No text could be read (a scanned PDF)</td><td>Not added; scanned pages need OCR first</td></tr>
+    </tbody>
+  </table>
+  <p>
+    A preprint and the published version of a paper often share a DOI or title but differ
+    in content, which is why those two cases ask you rather than deciding.
+  </p>
+
+  <h3 id="details">Where the publication details come from</h3>
+  <p>Three sources, all on your computer &mdash; nothing is looked up online:</p>
+  <ul>
+    <li><strong>A DOI printed in the text</strong> &mdash; the most reliable identifier.</li>
+    <li><strong>Your chat model reading the first page</strong> &mdash; usually right, but
+      not guaranteed.</li>
+    <li><strong>Properties stored inside the file</strong> &mdash; accurate for many
+      publisher PDFs, often junk for self-made files.</li>
+  </ul>
+  <p>
+    If a detail is wrong, correct it with <strong>Manage a document &rarr; Edit
+    details</strong>. Your edits always take priority.
+  </p>
+
+  <h3 id="headers">Contextual headers</h3>
+  <p>
+    When you create a library you can switch on <em>contextual headers</em>: the chat
+    model adds a sentence to every passage explaining where it sits in its document,
+    which makes retrieval more accurate. It costs one model call per passage &mdash;
+    about 75 for a 15-page paper &mdash; and applies to the whole library, so it can
+    only be chosen when the library is created.
+  </p>
+
+  <h2 id="chatbot">Turning a library into a chatbot</h2>
+  <p>
+    The <strong>Chatbot settings</strong> tab holds everything that shapes answers:
+    a name and description, the chat model and its sampling settings, perspective and
+    audience, retrieval settings, and which collections are searched.
+  </p>
+  <p>
+    <strong>Custom instructions</strong> let you describe the chatbot's role, for
+    example <em>&ldquo;You are a tutor for introductory cell biology. Explain terms
+    before using them.&rdquo;</em> They are added to the app's built-in rules and
+    cannot switch off answering from the documents or the citation checks.
+  </p>
+  <div class="callout callout-teach">
+    <span class="callout-title">Re-ranking is on by default here</span>
+    In a large library, many passages look similar to a question. Re-ranking asks the
+    model to reorder the best candidates before answering, which matters far more with
+    hundreds of documents than with a handful. It adds some time to each answer and can
+    be switched off.
+  </div>
+
+  <h2 id="conversations">Conversations</h2>
+  <p>
+    Every exchange is saved as soon as the answer finishes. The sidebar lists
+    conversations newest first; click one to resume it, or start a new chat. As in the
+    main app, the last five exchanges are given to the model so that follow-up
+    questions such as &ldquo;what about in mice?&rdquo; make sense.
+  </p>
+  <p>
+    Each saved answer keeps a copy of the passages it cited, so it stays checkable even
+    after its document is removed from the library. Conversations can be renamed,
+    deleted, or downloaded as HTML.
+  </p>
+
+  <h2 id="storage">Where libraries are stored</h2>
+  <p>
+    Each library is a folder inside <code>libraries/</code> in the application folder.
+    To keep them elsewhere &mdash; a larger drive, say &mdash; set the
+    <code>RAG_LIBRARY_DIR</code> environment variable before starting the app.
+  </p>
+  <ul>
+    <li><strong>Back up</strong> a library by copying its folder while the app is closed.</li>
+    <li><strong>Privacy:</strong> the folder contains your documents' text and your
+      conversations. It never leaves your computer, and the <code>libraries/</code>
+      folder is excluded from Git so it cannot be pushed to GitHub by accident.</li>
+    <li><strong>One app at a time:</strong> a library can be open in only one running
+      copy of the app. Several browser tabs of the same copy are fine.</li>
+  </ul>
+
+  <h2 id="changing">Changing a library later</h2>
+  <ul>
+    <li><strong>Move</strong> a document to another collection, or <strong>rename</strong>
+      a collection &mdash; instant, no re-processing.</li>
+    <li><strong>Re-embed</strong> with a different embedding model (Library settings) &mdash;
+      no re-upload needed, but it takes about as long as adding the documents did. If it
+      is interrupted, the library keeps using the old model.</li>
+    <li><strong>Delete</strong> the library &mdash; removes the folder, including every
+      conversation. You are asked to type the library's name first.</li>
+  </ul>
+
+</main>
+
+<aside class="col-lg-3 d-none d-lg-block">
+  <nav class="toc" aria-label="On this page">
+    <p class="control-meta mb-2"><strong>ON THIS PAGE</strong></p>
+    <div class="nav flex-column" id="tocList"></div>
+  </nav>
+</aside>
+</div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <p class="mb-1">Local LLM Scientific Assistant — documentation for faculty.</p>
+    <p class="mb-0">Runs entirely offline via Ollama. No data leaves your computer.</p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="assets/js/site.js"></script>
+</body>
+</html>

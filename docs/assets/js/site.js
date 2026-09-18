@@ -14,6 +14,7 @@
     { file: "techniques.html", label: "Advanced Techniques" },
     { file: "settings.html",   label: "Model Settings" },
     { file: "evaluation.html", label: "Evaluation" },
+    { file: "libraries.html",  label: "Libraries" },
     { file: "glossary.html",   label: "Glossary" }
   ];
 
