@@ -50,6 +50,15 @@ def render(library: Library, status: state.OllamaStatus, ready: bool) -> None:
         _render_manage(conversations, active, exchanges, settings)
     for exchange in exchanges:
         _render_exchange(exchange)
+    if exchanges:
+        # Where people look once they have finished asking: below the last answer.
+        title = next(c.title for c in conversations.list() if c.conversation_id == active)
+        st.download_button(
+            "⬇️ Download full conversation (HTML)",
+            _conversation_html(title, exchanges, settings).encode("utf-8"),
+            file_name=safe_filename(title or "conversation"),
+            mime="text/html", key="dl_full_conversation", type="primary",
+        )
 
     pending = st.session_state.pop("pending_question", None)
     can_ask = ready and model_ok
@@ -83,19 +92,24 @@ def _render_manage(conversations: ConversationStore, active: int, exchanges, set
                 conversations.rename(active, title)
                 st.rerun()
         if exchanges:
-            history = [(e.question, e.answer) for e in exchanges]
-            html_doc = build_conversation_html(
-                history, title=summary.title,
-                perspective=settings.perspective, audience=settings.audience,
+            st.download_button(
+                "⬇️ Download conversation (HTML)",
+                _conversation_html(summary.title, exchanges, settings).encode("utf-8"),
+                file_name=safe_filename(summary.title or "conversation"),
+                mime="text/html",
             )
-            st.download_button("⬇️ Download conversation (HTML)", html_doc.encode("utf-8"),
-                               file_name=safe_filename(summary.title or "conversation"),
-                               mime="text/html")
         sure = st.checkbox("I want to delete this conversation", key=f"del_ok_{active}")
         if st.button("Delete conversation", disabled=not sure):
             conversations.delete(active)
             st.session_state.active_conversation = None
             st.rerun()
+
+
+def _conversation_html(title: str, exchanges, settings) -> str:
+    return build_conversation_html(
+        [(e.question, e.answer) for e in exchanges], title=title,
+        perspective=settings.perspective, audience=settings.audience,
+    )
 
 
 def _render_exchange(exchange: Exchange) -> None:

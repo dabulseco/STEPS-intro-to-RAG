@@ -135,6 +135,15 @@ class TestApp:
         at2 = run(at2)
         assert "Foxes jump over the dog [S1]." in texts(at2)
 
+    def test_full_conversation_download_below_last_answer(self, env):
+        seeded_library()
+        at = run()
+        for q in ("First question about smith?", "Second question about smith?"):
+            at.chat_input[0].set_value(q)
+            at = run(at)
+        labels = [b.proto.label for b in at.get("download_button")]
+        assert "⬇️ Download full conversation (HTML)" in labels
+
     def test_missing_chat_model_prompts_for_choice(self, env):
         seeded_library(chat_model="gone-model")
         at = run()
