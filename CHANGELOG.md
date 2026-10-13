@@ -193,7 +193,7 @@ This document tracks all changes from the original `db9d_LLMMemoryParams.py` to 
 ## 📦 NEW FILES
 
 ```
-ollama_app/
+STEPS-intro-to-RAG/
 ├── app.py                          ✅ Refactored from db9d_LLMMemoryParams.py
 ├── requirements.txt                 ✅ Updated
 ├── README.md                        ✅ Comprehensive new documentation

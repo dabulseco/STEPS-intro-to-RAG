@@ -9,7 +9,7 @@ A complete, production-ready Streamlit application for interacting with local LL
 ## 📁 File Structure & Purpose
 
 ```
-ollama_app/                              📦 Main project directory
+STEPS-intro-to-RAG/                      📦 Main project directory
 │
 ├── 🚀 QUICKSTART FILES (Start Here!)
 │   ├── QUICKSTART.md                    ⭐ 5-minute setup guide - READ THIS FIRST

@@ -21,7 +21,7 @@ ollama list | grep -E "embed"
 # If nothing: ollama pull nomic-embed-text
 
 # 5. Try running the app
-cd ollama_app
+cd STEPS-intro-to-RAG
 streamlit run app.py
 
 # 6. Run the retrieval unit tests (no Ollama needed, ~1 second)
@@ -114,7 +114,7 @@ chmod -R 755 config/
 Once you have templates you want to keep, copy them **into** the defaults file
 (this direction is safe -- the reverse is not):
 ```bash
-cd ollama_app/config
+cd STEPS-intro-to-RAG/config
 cp question_templates.json default_templates.json
 ```
 "Reset to Defaults" now restores that set instead of clearing everything.
@@ -269,7 +269,7 @@ ModuleNotFoundError: No module named 'streamlit'
 
 **Solution**:
 ```bash
-cd ollama_app
+cd STEPS-intro-to-RAG
 pip install -r requirements.txt
 
 # If still fails, install individually:
@@ -449,7 +449,7 @@ This is expected behavior! Streamlit session state is temporary.
 
 #### Solution A: Check File Permissions
 ```bash
-cd ollama_app
+cd STEPS-intro-to-RAG
 chmod 644 config/question_templates.json
 ```
 
@@ -696,7 +696,7 @@ cp config/question_templates.json config/question_templates_backup.json
 ```bash
 # Start everything
 ollama serve                           # Terminal 1
-cd ollama_app && streamlit run app.py  # Terminal 2
+cd STEPS-intro-to-RAG && streamlit run app.py  # Terminal 2
 
 # Check status
 curl http://localhost:11434/api/tags   # Ollama running?

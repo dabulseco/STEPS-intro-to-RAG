@@ -7,7 +7,8 @@ Visit [ollama.ai](https://ollama.ai) and download the installer for your operati
 
 ### 2. Install Python Dependencies
 ```bash
-cd ollama_app
+git clone https://github.com/dabulseco/STEPS-intro-to-RAG.git
+cd STEPS-intro-to-RAG
 pip install -r requirements.txt
 ```
 

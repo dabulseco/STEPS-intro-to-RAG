@@ -125,7 +125,7 @@ Sized for roughly 50–500 documents per library. Full guide:
 ## 📁 Project Structure
 
 ```
-ollama_app/
+STEPS-intro-to-RAG/
 ├── app.py                          # Streamlit UI (view layer only)
 ├── library_app.py                  # Persistent Library App (saved libraries + chats)
 ├── library_ui/                     # Library App screens: chat, documents, settings
@@ -183,7 +183,8 @@ vector store lives: the main app uses `EphemeralRagStore`, the Library App
 
 1. **Clone or download this repository**
 ```bash
-cd ollama_app
+git clone https://github.com/dabulseco/STEPS-intro-to-RAG.git
+cd STEPS-intro-to-RAG
 ```
 
 2. **Install Python dependencies**
