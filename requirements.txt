@@ -11,8 +11,11 @@ python-docx>=1.0.0
 python-pptx>=0.6.23
 
 # --- Retrieval (rag_core) ---
-chromadb>=0.5.0        # EphemeralClient only -- nothing is written to disk
+chromadb>=1.0.0        # app.py: in-memory EphemeralClient; library_app.py: PersistentClient under libraries/
 rank-bm25>=0.2.2       # sparse/keyword retrieval
+
+# --- Tests ---
+pytest>=8.0.0
 
 # --- Optional: cross-encoder re-ranking (Phase 4) ---
 # Uncomment to enable the cross-encoder reranker backend.
