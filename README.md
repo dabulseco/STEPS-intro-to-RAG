@@ -1,5 +1,7 @@
 # 🔬 Local LLM Scientific Assistant
 
+A project of the [Institute for Future Intelligence](https://intofuture.org), built for the AI-STEPS faculty development program at Windward Community College and Kapiʻolani Community College.
+
 A comprehensive Streamlit application for interacting with local Large Language Models (LLMs) via Ollama, designed specifically for scientific and educational use cases.
 
 ## ✨ Features
@@ -401,7 +403,16 @@ To add new features or improve templates:
 
 ## 📝 License
 
-This project is open source. Feel free to modify and distribute according to your needs.
+Copyright © 2026 Institute for Future Intelligence, Inc.
+
+- **Code** (the apps, `rag_core/`, `library_ui/`, `utils/`, `tools/`, `tests/`, `config/`) is released under the [MIT License](LICENSE).
+- **Training content** (the `docs/` site and the Markdown guides) is released under [Creative Commons Attribution 4.0 International](LICENSE-CC-BY-4.0) (CC BY 4.0).
+
+## Funding
+
+This material is based upon work supported by the National Science Foundation under Award Nos. 2600119 and 2600120. Any opinions, findings and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.
+
+AI-STEPS is a collaboration between the Institute for Future Intelligence, the University of Hawaiʻi, Windward Community College and Kapiʻolani Community College.
 
 ## 🙏 Acknowledgments
 
